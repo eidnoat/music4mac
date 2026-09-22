@@ -59,13 +59,13 @@ public struct MainView: View {
                     switch nav.selectedSidebarItem {
                     case .songs, .none:
                         SongListView(title: "Tracks", songs: storage.songs)
-                            .id("all_songs_\(storage.dataVersion)")
+                            .id("all_songs")
                     case .albums:
                         AlbumGridView(albums: storage.albums)
-                            .id("albums_\(storage.dataVersion)")
+                            .id("albums")
                     case .artists:
                         ArtistListView(artists: storage.artists)
-                            .id("artists_\(storage.dataVersion)")
+                            .id("artists")
                     case .navidrome:
                         NavidromeConfigView()
                     case .settings:

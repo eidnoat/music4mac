@@ -198,14 +198,12 @@ public final class StorageManager: ObservableObject {
                 try? data.write(to: url, options: .atomic)
             }
         }
-        self.dataVersion = UUID()
         saveLibrary()
     }
     
     public func incrementPlayCount(songId: String) {
         if let idx = songs.firstIndex(where: { $0.id == songId }) {
             songs[idx].playCount += 1
-            self.dataVersion = UUID()
             saveLibrary()
         }
     }

@@ -87,6 +87,7 @@ public struct SongListView: View {
     
     private let player = AudioPlayerEngine.shared
     private let queue = PlayQueueManager.shared
+    @ObservedObject private var storage = StorageManager.shared
     
     @State private var displayedSongs: [Song]
     @State private var songIndexMap: [String: Int] = [:]
@@ -232,6 +233,9 @@ public struct SongListView: View {
             if isAudioPlaying != playing {
                 isAudioPlaying = playing
             }
+        }
+        .onReceive(storage.$dataVersion) { _ in
+            updateDisplayedSongs(reSort: true)
         }
         .onAppear {
             currentPlayingSongId = player.currentSong?.id
