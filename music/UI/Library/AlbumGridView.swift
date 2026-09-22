@@ -46,10 +46,16 @@ public struct AlbumCard: View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack(alignment: .bottomTrailing) {
                 if let url = album.effectiveCoverUrl {
-                    AsyncImage(url: url) { image in
-                        image.resizable().aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        Color.secondary.opacity(0.1)
+                    if url.isFileURL, let localImg = LocalCoverCache.shared.image(for: url) {
+                        Image(nsImage: localImg)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        AsyncImage(url: url) { image in
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            Color.secondary.opacity(0.1)
+                        }
                     }
                 } else {
                     ZStack {
@@ -117,9 +123,15 @@ public struct AlbumDetailView: View {
                 
                 Group {
                     if let url = album.effectiveCoverUrl {
-                        AsyncImage(url: url) { img in
-                            img.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: { Color.secondary.opacity(0.1) }
+                        if url.isFileURL, let localImg = LocalCoverCache.shared.image(for: url) {
+                            Image(nsImage: localImg)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } else {
+                            AsyncImage(url: url) { img in
+                                img.resizable().aspectRatio(contentMode: .fill)
+                            } placeholder: { Color.secondary.opacity(0.1) }
+                        }
                     } else {
                         Color.secondary.opacity(0.1)
                     }

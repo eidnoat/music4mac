@@ -1,6 +1,31 @@
 import SwiftUI
 import AppKit
 
+public final class LocalCoverCache: @unchecked Sendable {
+    public static let shared = LocalCoverCache()
+    private let cache = NSCache<NSURL, NSImage>()
+    
+    public init() {
+        cache.countLimit = 500
+        cache.totalCostLimit = 100 * 1024 * 1024 // 100MB
+    }
+    
+    public func image(for url: URL) -> NSImage? {
+        let nsUrl = url as NSURL
+        if let cached = cache.object(forKey: nsUrl) {
+            return cached
+        }
+        guard let img = NSImage(contentsOf: url) else { return nil }
+        let cost = Int(img.size.width * img.size.height * 4)
+        cache.setObject(img, forKey: nsUrl, cost: cost)
+        return img
+    }
+    
+    public func clear() {
+        cache.removeAllObjects()
+    }
+}
+
 public struct TrackCoverView: View {
     public let song: Song?
     public let size: CGFloat
@@ -28,7 +53,7 @@ public struct TrackCoverView: View {
     @ViewBuilder
     private func coverContent(for song: Song) -> some View {
         if let coverUrl = song.effectiveCoverUrl {
-            if coverUrl.isFileURL, let localImg = NSImage(contentsOf: coverUrl) {
+            if coverUrl.isFileURL, let localImg = LocalCoverCache.shared.image(for: coverUrl) {
                 Image(nsImage: localImg)
                     .resizable()
                     .aspectRatio(contentMode: .fill)

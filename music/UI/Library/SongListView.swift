@@ -143,7 +143,7 @@ public struct SongListView: View {
         
         // In-place metadata update when not re-sorting (e.g. playback lastPlayed/playCount updates)
         if !reSort {
-            let dict = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
+            let dict = Dictionary(songs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             var updated = displayedSongs
             for i in 0..<updated.count {
                 if let newSong = dict[updated[i].id] {

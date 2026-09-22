@@ -57,6 +57,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     
     private var cachedTracks: [String: CachedTrackInfo] = [:]
     private var downloadingSongIds: Set<String> = []
+    private var cachedCoverSafeIds: Set<String> = []
     
     private init() {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -87,6 +88,17 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     // MARK: - Index Management
     
     private func loadIndex() {
+        if let files = try? FileManager.default.contentsOfDirectory(atPath: cacheDirectory.path) {
+            var coverIds = Set<String>()
+            for file in files where file.hasSuffix("_cover.jpg") {
+                let safeId = String(file.dropLast("_cover.jpg".count))
+                coverIds.insert(safeId)
+            }
+            self.cachedCoverSafeIds = coverIds
+        } else {
+            self.cachedCoverSafeIds = []
+        }
+        
         guard let data = try? Data(contentsOf: indexFileUrl),
               let list = try? JSONDecoder().decode([CachedTrackInfo].self, from: data) else {
             self.cachedTracks = [:]
@@ -170,9 +182,11 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     
     public func getCachedCoverUrl(forId id: String) -> URL? {
         let safeId = safeIdentifier(for: id)
-        let coverUrl = cacheDirectory.appendingPathComponent("\(safeId)_cover.jpg")
-        if FileManager.default.fileExists(atPath: coverUrl.path) {
-            return coverUrl
+        lock.lock()
+        let hasCover = cachedCoverSafeIds.contains(safeId)
+        lock.unlock()
+        if hasCover {
+            return cacheDirectory.appendingPathComponent("\(safeId)_cover.jpg")
         }
         return nil
     }
@@ -200,6 +214,9 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         guard !data.isEmpty else { return }
         let safeId = safeIdentifier(for: id)
         let coverUrl = cacheDirectory.appendingPathComponent("\(safeId)_cover.jpg")
+        lock.lock()
+        cachedCoverSafeIds.insert(safeId)
+        lock.unlock()
         ioQueue.async {
             try? data.write(to: coverUrl, options: .atomic)
         }
@@ -353,6 +370,9 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
                 if let (coverData, _) = try? await downloadSession.data(from: coverUrl), !coverData.isEmpty {
                     let coverDest = cacheDirectory.appendingPathComponent("\(safeId)_cover.jpg")
                     try? coverData.write(to: coverDest, options: .atomic)
+                    self?.lock.lock()
+                    self?.cachedCoverSafeIds.insert(safeId)
+                    self?.lock.unlock()
                 }
             }
             
@@ -396,6 +416,8 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         
         let removedIds = Set(toRemove.map(\.id))
         for track in toRemove {
+            let safeId = safeIdentifier(for: track.id)
+            cachedCoverSafeIds.remove(safeId)
             cachedTracks.removeValue(forKey: track.id)
         }
         let updatedSize = max(0, runningSize)
@@ -426,8 +448,10 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     }
     
     public func removeSong(id: String) {
+        let safeId = safeIdentifier(for: id)
         lock.lock()
         downloadingSongIds.remove(id)
+        cachedCoverSafeIds.remove(safeId)
         let track = cachedTracks.removeValue(forKey: id)
         let updatedSize = cachedTracks.values.reduce(Int64(0)) { $0 + $1.fileSize }
         let updatedCount = cachedTracks.count
@@ -438,7 +462,6 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
             scheduleSaveIndex(snapshot)
         }
         
-        let safeId = safeIdentifier(for: id)
         ioQueue.async { [cacheDirectory] in
             if let track = track {
                 let fileUrl = cacheDirectory.appendingPathComponent(track.fileName)
@@ -468,6 +491,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         activeDownloadTasks.removeAll()
         cachedTracks.removeAll()
         downloadingSongIds.removeAll()
+        cachedCoverSafeIds.removeAll()
         lock.unlock()
         
         for task in tasks {
