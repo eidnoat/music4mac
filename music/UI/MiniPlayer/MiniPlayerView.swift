@@ -142,6 +142,8 @@ public struct MiniPlayerView: View {
         }
         .frame(width: 320, height: 110)
         .preferredColorScheme(themeManager.effectiveColorScheme)
+        .tint(Color.appleMusicRed)
+        .accentColor(Color.appleMusicRed)
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovering = hovering

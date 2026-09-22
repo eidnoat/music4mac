@@ -18,6 +18,30 @@ public struct MainView: View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView(selection: $nav.selectedSidebarItem)
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Button {
+                            refreshServerData()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(isRefreshing ? .appleMusicRed : .secondary)
+                                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                                .animation(
+                                    isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default,
+                                    value: isRefreshing
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isRefreshing)
+                        .keyboardShortcut("r", modifiers: .command)
+                        .help(
+                            !NavidromeClient.shared.hasValidCredentials
+                                ? "Connect to Navidrome in settings to enable server sync"
+                                : (isRefreshing ? "Fetching latest data from server..." : "Refresh library from server (⌘R)")
+                        )
+                    }
+                }
         } detail: {
             HStack(spacing: 0) {
                 // Main Content View
@@ -62,37 +86,10 @@ public struct MainView: View {
                     showQueue: $showQueue
                 )
             }
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    HStack(spacing: 8) {
-                        Text("music")
-                            .font(.system(size: 13, weight: .semibold))
-                        
-                        Button {
-                            refreshServerData()
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(isRefreshing ? .accentColor : .secondary)
-                                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                                .animation(
-                                    isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default,
-                                    value: isRefreshing
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isRefreshing)
-                        .keyboardShortcut("r", modifiers: .command)
-                        .help(
-                            !NavidromeClient.shared.hasValidCredentials
-                                ? "Connect to Navidrome in settings to enable server sync"
-                                : (isRefreshing ? "Fetching latest data from server..." : "Refresh library from server (⌘R)")
-                        )
-                    }
-                }
-            }
         }
-        .navigationTitle("music")
+        .navigationTitle("")
+        .tint(Color.appleMusicRed)
+        .accentColor(Color.appleMusicRed)
         .preferredColorScheme(themeManager.effectiveColorScheme)
         .onChange(of: showLyrics) { _, isShown in
             if isShown { showQueue = false }

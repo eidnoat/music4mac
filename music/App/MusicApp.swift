@@ -15,6 +15,8 @@ public struct MusicApp: App {
                 .frame(minWidth: 850, minHeight: 550)
                 .background(Color(nsColor: .windowBackgroundColor))
                 .preferredColorScheme(themeManager.effectiveColorScheme)
+                .tint(Color.appleMusicRed)
+                .accentColor(Color.appleMusicRed)
         }
         .windowToolbarStyle(.unified(showsTitle: false))
         .defaultSize(width: 1080, height: 700)

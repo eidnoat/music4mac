@@ -2,11 +2,19 @@ import Foundation
 import AppKit
 import SwiftUI
 
+extension Color {
+    public static let appleMusicRed = Color(red: 250.0 / 255.0, green: 45.0 / 255.0, blue: 72.0 / 255.0)
+}
+
+extension NSColor {
+    public static let appleMusicRed = NSColor(srgbRed: 250.0 / 255.0, green: 45.0 / 255.0, blue: 72.0 / 255.0, alpha: 1.0)
+}
+
 public final class ColorManager: ObservableObject {
     public static let shared = ColorManager()
     
     @Published public var dominantColor: Color = Color(nsColor: .windowBackgroundColor)
-    @Published public var secondaryColor: Color = Color.accentColor
+    @Published public var secondaryColor: Color = Color.appleMusicRed
     @Published public var textColor: Color = .primary
     
     private var lastImage: NSImage?
@@ -18,7 +26,7 @@ public final class ColorManager: ObservableObject {
             self.lastImage = nil
             DispatchQueue.main.async {
                 self.dominantColor = Color(nsColor: .windowBackgroundColor)
-                self.secondaryColor = Color.accentColor
+                self.secondaryColor = Color.appleMusicRed
                 self.textColor = .primary
             }
             return
