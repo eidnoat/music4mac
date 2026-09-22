@@ -370,9 +370,9 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
                 if let (coverData, _) = try? await downloadSession.data(from: coverUrl), !coverData.isEmpty {
                     let coverDest = cacheDirectory.appendingPathComponent("\(safeId)_cover.jpg")
                     try? coverData.write(to: coverDest, options: .atomic)
-                    self?.lock.lock()
-                    self?.cachedCoverSafeIds.insert(safeId)
-                    self?.lock.unlock()
+                    self.lock.lock()
+                    self.cachedCoverSafeIds.insert(safeId)
+                    self.lock.unlock()
                 }
             }
             
