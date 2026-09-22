@@ -104,24 +104,16 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
             playUrl = cachedUrl
             isLocalOrCached = true
             SongCacheManager.shared.recordAccess(songId: song.id)
-            BookmarkManager.shared.stopAccessingTrack()
-            if song.source == .navidrome, let remoteId = song.remoteId {
+            if let remoteId = song.remoteId {
                 Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: false) }
             }
-        } else if song.source == .local, let localPath = song.localPath {
-            playUrl = URL(fileURLWithPath: localPath)
-            isLocalOrCached = true
-            _ = BookmarkManager.shared.startAccessingTrack(url: playUrl!)
-        } else {
-            BookmarkManager.shared.stopAccessingTrack()
-            if song.source == .navidrome, let remoteId = song.remoteId {
-                playUrl = NavidromeClient.shared.getStreamUrl(songId: remoteId)
-                Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: false) }
-                
-                // Auto-cache played song in background if enabled
-                if SongCacheManager.shared.isEnabled {
-                    SongCacheManager.shared.startAutoCache(for: song)
-                }
+        } else if let remoteId = song.remoteId {
+            playUrl = NavidromeClient.shared.getStreamUrl(songId: remoteId)
+            Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: false) }
+            
+            // Auto-cache played song in background if enabled
+            if SongCacheManager.shared.isEnabled {
+                SongCacheManager.shared.startAutoCache(for: song)
             }
         }
         
@@ -348,7 +340,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
             return
         }
         
-        if song.source == .navidrome, let remoteId = song.remoteId {
+        if let remoteId = song.remoteId {
             Task { @MainActor [weak self] in
                 let lrc = try? await NavidromeClient.shared.getLyrics(songId: remoteId)
                 guard let self = self, self.currentSong?.id == song.id else { return }
@@ -405,7 +397,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
                     self.scrobbledCurrentSong = true
                     if let song = self.currentSong {
                         StorageManager.shared.incrementPlayCount(songId: song.id)
-                        if song.source == .navidrome, let remoteId = song.remoteId {
+                        if let remoteId = song.remoteId {
                             Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: true) }
                         }
                     }
@@ -421,7 +413,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
                 self.scrobbledCurrentSong = true
                 if let song = self.currentSong {
                     StorageManager.shared.incrementPlayCount(songId: song.id)
-                    if song.source == .navidrome, let remoteId = song.remoteId {
+                    if let remoteId = song.remoteId {
                         Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: true) }
                     }
                 }
@@ -453,7 +445,6 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemPlaybackStalled, object: nil)
         player.pause()
         player.replaceCurrentItem(with: nil) // Explicitly flush and release CoreMedia audio buffers
-        BookmarkManager.shared.stopAccessingTrack()
         self.status = .stopped
         self.currentTime = 0
         self.duration = 0

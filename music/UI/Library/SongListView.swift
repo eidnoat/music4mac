@@ -503,27 +503,19 @@ public struct SongListView: View {
                 Button("Add to Queue") {
                     queue.append(song)
                 }
-                if song.source == .navidrome {
-                    Divider()
-                    if SongCacheManager.shared.isSongCached(id: song.id) {
-                        Button("Remove from Cache") {
-                            SongCacheManager.shared.removeSong(id: song.id)
-                        }
-                        if let cachedUrl = SongCacheManager.shared.getCachedFileUrl(for: song) {
-                            Button("Show Cached File in Finder") {
-                                NSWorkspace.shared.selectFile(cachedUrl.path, inFileViewerRootedAtPath: "")
-                            }
-                        }
-                    } else {
-                        Button("Cache Track") {
-                            SongCacheManager.shared.startAutoCache(for: song)
+                Divider()
+                if SongCacheManager.shared.isSongCached(id: song.id) {
+                    Button("Remove from Cache") {
+                        SongCacheManager.shared.removeSong(id: song.id)
+                    }
+                    if let cachedUrl = SongCacheManager.shared.getCachedFileUrl(for: song) {
+                        Button("Show Cached File in Finder") {
+                            NSWorkspace.shared.selectFile(cachedUrl.path, inFileViewerRootedAtPath: "")
                         }
                     }
-                }
-                if let localPath = song.localPath {
-                    Divider()
-                    Button("Show in Finder") {
-                        NSWorkspace.shared.selectFile(localPath, inFileViewerRootedAtPath: "")
+                } else {
+                    Button("Cache Track") {
+                        SongCacheManager.shared.startAutoCache(for: song)
                     }
                 }
             } else {
@@ -537,16 +529,15 @@ public struct SongListView: View {
                         queue.append(s)
                     }
                 }
-                let remoteSongs = selectedSongs.filter { $0.source == .navidrome }
-                if !remoteSongs.isEmpty {
+                if !selectedSongs.isEmpty {
                     Divider()
-                    Button("Cache Selected Tracks (\(remoteSongs.count))") {
-                        for s in remoteSongs {
+                    Button("Cache Selected Tracks (\(selectedSongs.count))") {
+                        for s in selectedSongs {
                             SongCacheManager.shared.startAutoCache(for: s)
                         }
                     }
                     Button("Remove Selected from Cache") {
-                        for s in remoteSongs {
+                        for s in selectedSongs {
                             SongCacheManager.shared.removeSong(id: s.id)
                         }
                     }

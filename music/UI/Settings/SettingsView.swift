@@ -6,9 +6,6 @@ public struct SettingsView: View {
     @ObservedObject var themeManager = ThemeManager.shared
     @ObservedObject var cacheManager = SongCacheManager.shared
     @AppStorage("music.settings.showMenuBarExtra") private var showMenuBarExtra: Bool = true
-    @State private var folders: [URL] = []
-    @State private var isScanning = false
-    @State private var scanProgress = ""
     @State private var showDisableCacheAlert = false
     @State private var showClearCacheAlert = false
     
@@ -132,82 +129,15 @@ public struct SettingsView: View {
                 
                 Divider()
                 
-                // Section: Local Folders
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Local Music Folders")
-                        .font(.title2.bold())
-                    Text("Add local music folders to automatically index audio files")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    VStack(spacing: 8) {
-                        ForEach(folders, id: \.self) { folder in
-                            HStack {
-                                Image(systemName: "folder.fill")
-                                    .foregroundColor(.accentColor)
-                                Text(folder.path)
-                                    .font(.system(size: 13))
-                                    .lineLimit(1)
-                                
-                                Spacer()
-                                
-                                Button {
-                                    removeFolder(folder)
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .padding(10)
-                            .background(Color.secondary.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                        }
-                    }
-                    
-                    HStack(spacing: 12) {
-                        Button {
-                            selectFolder()
-                        } label: {
-                            Label("Add Folder...", systemImage: "plus")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        
-                        Button {
-                            rescanAll()
-                        } label: {
-                            if isScanning {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Label("Rescan All", systemImage: "arrow.clockwise")
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(isScanning || folders.isEmpty)
-                    }
-                    
-                    if !scanProgress.isEmpty {
-                        Text(scanProgress)
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Divider()
-                
-                // Section: Library Stats
+                // Section: Library Overview
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Library Overview")
                         .font(.title3.bold())
                     
-                    let localCount = storage.songs.filter { $0.source == .local }.count
-                    let remoteCount = storage.songs.filter { $0.source == .navidrome }.count
-                    
                     HStack(spacing: 24) {
-                        StatusItem(label: "Local Tracks", value: "\(localCount)")
-                        StatusItem(label: "Navidrome Tracks", value: "\(remoteCount)")
-                        StatusItem(label: "Total Tracks", value: "\(storage.songs.count)")
+                        StatusItem(label: "Synced Tracks", value: "\(storage.songs.count)")
+                        StatusItem(label: "Albums", value: "\(storage.albums.count)")
+                        StatusItem(label: "Artists", value: "\(storage.artists.count)")
                     }
                 }
                 
@@ -220,7 +150,7 @@ public struct SettingsView: View {
                     Text("Version 0.0.1 · Native macOS Swift")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    Text("A hi-fi music player for local and self-hosted media libraries.")
+                    Text("A hi-fi music player for self-hosted Navidrome / Subsonic libraries.")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                         .frame(maxWidth: 500)
@@ -245,70 +175,6 @@ public struct SettingsView: View {
             }
         } message: {
             Text("Are you sure you want to delete all cached audio tracks? This action cannot be undone.")
-        }
-        .onAppear {
-            folders = BookmarkManager.shared.startAccessingAllSavedDirectories()
-        }
-    }
-    
-    private func selectFolder() {
-        let openPanel = NSOpenPanel()
-        openPanel.canChooseFiles = false
-        openPanel.canChooseDirectories = true
-        openPanel.allowsMultipleSelection = false
-        openPanel.prompt = "Select Music Directory"
-        
-        if openPanel.runModal() == .OK, let url = openPanel.url {
-            if BookmarkManager.shared.saveBookmark(for: url) {
-                if !folders.contains(url) {
-                    folders.append(url)
-                }
-                scanFolder(url)
-            }
-        }
-    }
-    
-    private func removeFolder(_ url: URL) {
-        BookmarkManager.shared.removeBookmark(for: url)
-        folders.removeAll(where: { $0 == url })
-        // Remove songs belonging to this folder and update derived collections
-        storage.removeSongs { $0.localPath?.hasPrefix(url.path) == true }
-    }
-    
-    private func scanFolder(_ url: URL) {
-        isScanning = true
-        scanProgress = "Scanning: \(url.lastPathComponent)..."
-        
-        Task {
-            let songs = await LocalLibraryScanner.shared.scanDirectory(at: url) { progress, file in
-                DispatchQueue.main.async {
-                    self.scanProgress = "Scanning (\(Int(progress * 100))%): \(file)"
-                }
-            }
-            
-            await MainActor.run {
-                storage.upsertSongs(songs)
-                self.isScanning = false
-                self.scanProgress = "Scan complete, found \(songs.count) tracks"
-            }
-        }
-    }
-    
-    private func rescanAll() {
-        isScanning = true
-        scanProgress = "Preparing to rescan..."
-        
-        Task {
-            var allSongs: [Song] = []
-            for folder in folders {
-                let songs = await LocalLibraryScanner.shared.scanDirectory(at: folder)
-                allSongs.append(contentsOf: songs)
-            }
-            await MainActor.run {
-                storage.upsertSongs(allSongs)
-                self.isScanning = false
-                self.scanProgress = "Rescan complete, updated \(allSongs.count) local tracks"
-            }
         }
     }
 }

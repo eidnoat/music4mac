@@ -5,7 +5,7 @@
 
   # music for macOS
 
-  _A minimalist, lightweight, and native music player for local libraries and self-hosted Navidrome._
+  _A minimalist, lightweight, and native music player for self-hosted Navidrome._
 
   [![macOS 15+](https://img.shields.io/badge/macOS-15%2B-blue.svg?style=flat-square&logo=apple)](https://www.apple.com/macos/)
   [![Swift 6](https://img.shields.io/badge/Swift-6.0-orange.svg?style=flat-square&logo=swift)](https://swift.org)
@@ -54,7 +54,7 @@ Out of necessity, I spent a single day building this native macOS app with **Swi
 
 This player is not intended to please everyone. Its boundaries are deliberately narrow:
 
-- **Strictly Local & Navidrome**: It only plays local audio files and connects to self-hosted Navidrome (Subsonic) servers. There are no commercial streaming recommendations or discovery features. It is **not** suitable for anyone looking for online streaming services.
+- **Dedicated to Navidrome**: Built specifically to connect to self-hosted Navidrome (Subsonic) servers. There are no commercial streaming recommendations or discovery features. It is **not** suitable for anyone looking for online streaming services.
 - **Intentionally Minimal**: The UI and features are kept as simple as possible, retaining only what is strictly necessary to enjoy listening to music.
 - **Extremely Low Resource Footprint**: Free of cross-platform overhead, on my library of **500+ songs** running on a **MacBook Pro (M3 Pro)**, memory consumption consistently stays **below 100 MB** during extended playback, with near-zero CPU impact.
 

@@ -8,11 +8,5 @@
     <!-- Network Access for Navidrome streaming and covers -->
     <key>com.apple.security.network.client</key>
     <true/>
-    <!-- User-selected files and directories access for local music -->
-    <key>com.apple.security.files.user-selected.read-write</key>
-    <true/>
-    <!-- Security-scoped bookmarks persistence -->
-    <key>com.apple.security.files.bookmarks.app-scope</key>
-    <true/>
 </dict>
 </plist>

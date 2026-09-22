@@ -28,8 +28,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             diskPath: "music_network_cache"
         )
         
-        // Ensure saved directories are accessible
-        _ = BookmarkManager.shared.startAccessingAllSavedDirectories()
         ThemeManager.shared.apply()
         updateStatusItemVisibility()
     }

@@ -51,8 +51,6 @@ public struct AlbumCard: View {
                     } placeholder: {
                         Color.secondary.opacity(0.1)
                     }
-                } else if let firstSongPath = album.songs.first?.localPath {
-                    LocalCoverImage(path: firstSongPath)
                 } else {
                     ZStack {
                         Color.secondary.opacity(0.1)
@@ -122,8 +120,6 @@ public struct AlbumDetailView: View {
                         AsyncImage(url: url) { img in
                             img.resizable().aspectRatio(contentMode: .fill)
                         } placeholder: { Color.secondary.opacity(0.1) }
-                    } else if let path = album.songs.first?.localPath {
-                        LocalCoverImage(path: path)
                     } else {
                         Color.secondary.opacity(0.1)
                     }

@@ -21,7 +21,6 @@ public struct Song: Identifiable, Hashable, Codable, Sendable {
     public var format: String?
     
     public var source: SongSource
-    public var localPath: String?
     public var remoteId: String?
     public var coverUrl: URL?
     public var coverId: String?
@@ -60,8 +59,7 @@ public struct Song: Identifiable, Hashable, Codable, Sendable {
         bitrate: Int? = nil,
         sampleRate: Int? = nil,
         format: String? = nil,
-        source: SongSource = .local,
-        localPath: String? = nil,
+        source: SongSource = .navidrome,
         remoteId: String? = nil,
         coverUrl: URL? = nil,
         coverId: String? = nil,
@@ -84,7 +82,6 @@ public struct Song: Identifiable, Hashable, Codable, Sendable {
         self.sampleRate = sampleRate
         self.format = format
         self.source = source
-        self.localPath = localPath
         self.remoteId = remoteId
         self.coverUrl = coverUrl
         self.coverId = coverId

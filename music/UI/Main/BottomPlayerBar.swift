@@ -242,55 +242,6 @@ private struct BottomProgressBarSection: View {
     }
 }
 
-public struct LocalCoverImage: View {
-    let path: String
-    @State private var nsImage: NSImage?
-    @State private var hasChecked = false
-    
-    public init(path: String) {
-        self.path = path
-        let cached = ArtworkCache.shared.image(for: path)
-        self._nsImage = State(initialValue: cached)
-        self._hasChecked = State(initialValue: cached != nil)
-    }
-    
-    public var body: some View {
-        Group {
-            if let image = nsImage {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                ZStack {
-                    Color.secondary.opacity(0.1)
-                    Image(systemName: "music.note")
-                        .foregroundColor(.secondary)
-                }
-            }
-        }
-        .onAppear {
-            if !hasChecked {
-                loadCover()
-            }
-        }
-        .onChange(of: path) { _, newPath in
-            self.nsImage = ArtworkCache.shared.image(for: newPath)
-            self.hasChecked = (self.nsImage != nil)
-            if !self.hasChecked {
-                loadCover()
-            }
-        }
-    }
-    
-    private func loadCover() {
-        self.hasChecked = true
-        Task { @MainActor in
-            let img = await ArtworkCache.shared.loadArtwork(for: path)
-            self.nsImage = img
-        }
-    }
-}
-
 public struct PlaybackProgressBar: View {
     let currentTime: TimeInterval
     let duration: TimeInterval

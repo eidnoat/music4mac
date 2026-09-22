@@ -71,8 +71,8 @@ final class StorageManagerTests: XCTestCase {
         let storage = StorageManager.shared
         let originalSongs = storage.songs
         
-        let song1 = Song(id: "remove_1", title: "Song 1", artist: "Artist 1", album: "Album 1", localPath: "/tmp/music/1.mp3")
-        let song2 = Song(id: "remove_2", title: "Song 2", artist: "Artist 2", album: "Album 2", localPath: "/other/music/2.mp3")
+        let song1 = Song(id: "remove_1", title: "Song 1", artist: "Artist 1", album: "Album 1")
+        let song2 = Song(id: "remove_2", title: "Song 2", artist: "Artist 2", album: "Album 2")
         
         storage.songs = [song1, song2]
         storage.updateDerivedCollections()
@@ -80,7 +80,7 @@ final class StorageManagerTests: XCTestCase {
         XCTAssertEqual(storage.albums.count, 2)
         XCTAssertEqual(storage.artists.count, 2)
         
-        storage.removeSongs { $0.localPath?.hasPrefix("/tmp/music") == true }
+        storage.removeSongs { $0.id == "remove_1" }
         
         XCTAssertEqual(storage.songs.count, 1)
         XCTAssertEqual(storage.songs.first?.id, "remove_2")
@@ -116,8 +116,8 @@ final class StorageManagerTests: XCTestCase {
         let date1 = Date(timeIntervalSince1970: 1000)
         let date2 = Date(timeIntervalSince1970: 2000)
         
-        let localSong = Song(id: "s_merge", title: "Merge Song", artist: "Artist", album: "Album", playCount: 5, lastPlayed: date2, localPath: "/local/path")
-        storage.songs = [localSong]
+        let existingSong = Song(id: "s_merge", title: "Merge Song", artist: "Artist", album: "Album", playCount: 5, lastPlayed: date2)
+        storage.songs = [existingSong]
         
         let remoteSong = Song(id: "s_merge", title: "Merge Song", artist: "Artist", album: "Album", playCount: 2, lastPlayed: date1)
         storage.upsertSongs([remoteSong])
@@ -127,7 +127,6 @@ final class StorageManagerTests: XCTestCase {
         XCTAssertNotNil(merged)
         XCTAssertEqual(merged?.playCount, 5)
         XCTAssertEqual(merged?.lastPlayed, date2)
-        XCTAssertEqual(merged?.localPath, "/local/path")
         
         // Restore
         storage.songs = originalSongs

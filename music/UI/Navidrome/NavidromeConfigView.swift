@@ -116,7 +116,7 @@ public struct NavidromeConfigView: View {
                         Text("Server Status")
                             .font(.headline)
                         
-                        let remoteCount = storage.songs.filter { $0.source == .navidrome }.count
+                        let remoteCount = storage.songs.count
                         HStack(spacing: 24) {
                             StatusItem(label: "Synced Tracks", value: "\(remoteCount)")
                             StatusItem(label: "Protocol", value: "Subsonic 1.16.1")

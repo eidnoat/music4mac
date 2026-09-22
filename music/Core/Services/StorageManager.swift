@@ -47,22 +47,6 @@ public final class StorageManager: ObservableObject {
             return
         }
         self.songs = list
-        
-        // Auto-backfill dateAdded for existing local files if missing
-        var didUpdate = false
-        for i in 0..<self.songs.count {
-            if self.songs[i].dateAdded == nil, let path = self.songs[i].localPath {
-                let attrs = try? FileManager.default.attributesOfItem(atPath: path)
-                if let date = (attrs?[.creationDate] as? Date) ?? (attrs?[.modificationDate] as? Date) {
-                    self.songs[i].dateAdded = date
-                    didUpdate = true
-                }
-            }
-        }
-        if didUpdate {
-            saveLibrary()
-        }
-        
         updateDerivedCollections()
     }
     
@@ -154,9 +138,6 @@ public final class StorageManager: ObservableObject {
                 merged.playCount = max(existing.playCount, song.playCount)
                 if merged.lyrics == nil {
                     merged.lyrics = existing.lyrics
-                }
-                if merged.localPath == nil {
-                    merged.localPath = existing.localPath
                 }
                 dict[song.id] = merged
             } else {

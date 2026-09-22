@@ -103,7 +103,7 @@ public struct MainView: View {
         .task {
             // Auto-refresh Navidrome tracks if configured and any tracks are missing dateAdded
             if NavidromeClient.shared.hasValidCredentials &&
-                storage.songs.contains(where: { $0.source == .navidrome && $0.dateAdded == nil }) {
+                storage.songs.contains(where: { $0.dateAdded == nil }) {
                 if let songs = try? await NavidromeClient.shared.getAllSongs(), !songs.isEmpty {
                     await MainActor.run {
                         storage.upsertSongs(songs)

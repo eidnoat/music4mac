@@ -46,8 +46,6 @@ public struct TrackCoverView: View {
                     }
                 }
             }
-        } else if let localPath = song.localPath {
-            LocalCoverImage(path: localPath)
         } else {
             fallbackCover
         }
