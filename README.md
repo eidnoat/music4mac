@@ -9,6 +9,7 @@
 
   [![macOS 15+](https://img.shields.io/badge/macOS-15%2B-blue.svg?style=flat-square&logo=apple)](https://www.apple.com/macos/)
   [![Swift 6](https://img.shields.io/badge/Swift-6.0-orange.svg?style=flat-square&logo=swift)](https://swift.org)
+  [![Release](https://img.shields.io/github/v/release/eidnoat/music4mac?style=flat-square&color=blue)](https://github.com/eidnoat/music4mac/releases)
   [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 
 </div>
@@ -40,11 +41,9 @@ Out of necessity, I spent a single day building this native macOS app with **Swi
   <img src="./docs/images/image_3.png" width="100%" alt="music Navidrome Sync & Mini Player" />
   <p><em>Navidrome server integration and compact floating Mini Player</em></p>
   <br />
-
   <img src="./docs/images/image_2.png" width="100%" alt="music Lyrics & Controls" />
   <p><em>Synced LRC lyrics playback with native macOS bottom player bar</em></p>
   <br />
-
   <img src="./docs/images/image_1.png" width="100%" alt="music Main Interface" />
   <p><em>Main Library: Clean NavigationSplitView for browsing songs, albums, and artists</em></p>
 </div>
@@ -68,28 +67,51 @@ This player is not intended to please everyone. Its boundaries are deliberately 
 
 ---
 
-## 🛠️ Building & Running
+## 🚀 Download & Installation
 
-### Option 1: Automated GitHub Actions (Recommended)
-This repository includes a CI pipeline (`.github/workflows/macos-build.yml`):
-1. Every commit pushed to `main` triggers an automated build and test run on `macos-15`.
-2. You can download the pre-packaged `.app` zip bundle directly from the **Actions** tab artifacts.
+### Option 1: Pre-built Binary (Recommended)
+Download the latest `music.zip` from the [**Releases**](https://github.com/eidnoat/music4mac/releases) page:
+1. Download **`music.zip`** from the latest release.
+2. Unzip and drag **`music.app`** to your `/Applications` folder.
+3. **First-time launch (Gatekeeper)**: Since this is an unnotarized personal open-source build, macOS will prompt you on first launch. Right-click (or Control-click) `music.app`, select **Open**, and click **Open** in the dialog.
 
-### Option 2: Build Locally (macOS 15+)
-Requires Xcode 16+ and Command Line Tools.
+> [!TIP]
+> You can also grab bleeding-edge automated builds from the [**Actions**](https://github.com/eidnoat/music4mac/actions) tab under the latest run's Artifacts.
 
+---
+
+## 🛠️ Building from Source
+
+Requires macOS 15.0+ with Xcode 16+ or Swift 6.0+ Command Line Tools.
+
+### Quick Build & Run
 ```bash
-# 1. Clone the repository
+# 1. Clone repository
 git clone git@github.com:eidnoat/music4mac.git
 cd music4mac
 
 # 2. Run unit tests
 swift test
 
-# 3. Build and package music.app
-./build_app.sh
+# 3. Run in debug mode directly
+swift run music
+```
 
-# 4. Or open directly in Xcode
+### Packaging `.app` Bundle & `.zip`
+The repository includes an automated packaging script (`build_app.sh`):
+```bash
+chmod +x ./build_app.sh
+./build_app.sh
+```
+This script will:
+1. Compile the release binary (`swift build -c release`).
+2. Construct the macOS `music.app` bundle hierarchy.
+3. Compile `AppIcon.xcassets` into macOS native icons with `actool`.
+4. Apply entitlements and ad-hoc sign the bundle (`codesign`).
+5. Export production-ready `dist/music.app` and `music.zip` preserving file attributes and permissions.
+
+Or open the project directly in Xcode:
+```bash
 open Package.swift
 ```
 
