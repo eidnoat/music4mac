@@ -26,6 +26,8 @@ public struct SongListView: View {
                 return SavedSort(key: "duration", order: comparator.order)
             } else if comparator.keyPath == \Song.playCount {
                 return SavedSort(key: "playCount", order: comparator.order)
+            } else if comparator.keyPath == \Song.lastPlayedComparable {
+                return SavedSort(key: "lastPlayed", order: comparator.order)
             } else if comparator.keyPath == \Song.dateAddedComparable {
                 return SavedSort(key: "dateAdded", order: comparator.order)
             }
@@ -46,6 +48,8 @@ public struct SongListView: View {
                 return KeyPathComparator(\Song.duration, order: item.order)
             case "playCount":
                 return KeyPathComparator(\Song.playCount, order: item.order)
+            case "lastPlayed":
+                return KeyPathComparator(\Song.lastPlayedComparable, order: item.order)
             case "dateAdded":
                 return KeyPathComparator(\Song.dateAddedComparable, order: item.order)
             default:
@@ -278,7 +282,15 @@ public struct SongListView: View {
             .customizationID("playCount")
             .disabledCustomizationBehavior(.reorder)
             
-            // Column 7: Date Added — fixed position, can show/hide
+            // Column 7: Last Played — fixed position, can show/hide
+            TableColumn("Last Played", value: \.lastPlayedComparable) { song in
+                lastPlayedCell(for: song)
+            }
+            .width(ideal: 100)
+            .customizationID("lastPlayed")
+            .disabledCustomizationBehavior(.reorder)
+            
+            // Column 8: Date Added — fixed position, can show/hide
             TableColumn("Date Added", value: \.dateAddedComparable) { song in
                 dateAddedCell(for: song)
             }
@@ -348,7 +360,15 @@ public struct SongListView: View {
             .customizationID("playCount")
             .disabledCustomizationBehavior(.reorder)
             
-            // Column 7: Date Added — fixed position, non-sortable, can show/hide
+            // Column 7: Last Played — fixed position, non-sortable, can show/hide
+            TableColumn("Last Played") { song in
+                lastPlayedCell(for: song)
+            }
+            .width(ideal: 100)
+            .customizationID("lastPlayed")
+            .disabledCustomizationBehavior(.reorder)
+            
+            // Column 8: Date Added — fixed position, non-sortable, can show/hide
             TableColumn("Date Added") { song in
                 dateAddedCell(for: song)
             }
@@ -416,6 +436,32 @@ public struct SongListView: View {
         Text(song.playCount > 0 ? "\(song.playCount)" : "-")
             .font(.system(size: 11, design: .monospaced))
             .foregroundColor(.secondary)
+    }
+    
+    private static let lastPlayedRelativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter
+    }()
+    
+    @ViewBuilder
+    private func lastPlayedCell(for song: Song) -> some View {
+        if let date = song.lastPlayed {
+            let interval = Date().timeIntervalSince(date)
+            if interval >= 0 && interval < 7 * 86400 {
+                Text(Self.lastPlayedRelativeFormatter.localizedString(for: date, relativeTo: Date()))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.secondary)
+            } else {
+                Text(Self.dateFormatter.string(from: date))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+        } else {
+            Text("-")
+                .foregroundColor(.secondary.opacity(0.5))
+                .font(.system(size: 11))
+        }
     }
     
     private static let dateFormatter: DateFormatter = {

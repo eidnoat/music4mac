@@ -29,9 +29,6 @@ public struct MainView: View {
                         AlbumGridView(albums: storage.albums)
                     case .artists:
                         ArtistListView(artists: storage.artists)
-                    case .recentlyPlayed:
-                        SongListView(title: "Recently Played", songs: storage.recentlyPlayedSongs, allowSorting: false)
-                            .id("recently_played")
                     case .navidrome:
                         NavidromeConfigView()
                     case .settings:

@@ -35,6 +35,10 @@ public struct Song: Identifiable, Hashable, Codable, Sendable {
         dateAdded ?? .distantPast
     }
     
+    public var lastPlayedComparable: Date {
+        lastPlayed ?? .distantPast
+    }
+    
     public var effectiveCoverUrl: URL? {
         if let cached = SongCacheManager.shared.getCachedCoverUrl(forId: id) {
             return cached

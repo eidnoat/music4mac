@@ -102,14 +102,6 @@ public final class StorageManager: ObservableObject {
         }.sorted(by: { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
     }
     
-    public var recentlyPlayedSongs: [Song] {
-        var dict: [String: Song] = Dictionary(minimumCapacity: songs.count)
-        for song in songs {
-            dict[song.id] = song
-        }
-        return history.compactMap { dict[$0] }
-    }
-    
     public func saveLibrary() {
         let songsSnapshot = self.songs
         let url = baseDir.appendingPathComponent(libraryFileName)

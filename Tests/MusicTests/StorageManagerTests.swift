@@ -93,4 +93,18 @@ final class StorageManagerTests: XCTestCase {
         storage.songs = originalSongs
         storage.updateDerivedCollections()
     }
+    
+    func testLastPlayedComparableSorting() {
+        let now = Date()
+        let song1 = Song(id: "s1", title: "S1", artist: "A", album: "Alb", lastPlayed: now.addingTimeInterval(-100))
+        let song2 = Song(id: "s2", title: "S2", artist: "A", album: "Alb", lastPlayed: now)
+        let song3 = Song(id: "s3", title: "S3", artist: "A", album: "Alb", lastPlayed: nil)
+        
+        let songs = [song1, song2, song3]
+        let sortedDesc = songs.sorted(by: { $0.lastPlayedComparable > $1.lastPlayedComparable })
+        
+        XCTAssertEqual(sortedDesc[0].id, "s2")
+        XCTAssertEqual(sortedDesc[1].id, "s1")
+        XCTAssertEqual(sortedDesc[2].id, "s3")
+    }
 }

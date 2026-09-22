@@ -4,7 +4,6 @@ public enum NavigationItem: Hashable {
     case songs
     case albums
     case artists
-    case recentlyPlayed
     case navidrome
     case settings
 }
@@ -30,10 +29,6 @@ public struct SidebarView: View {
                 
                 NavigationLink(value: NavigationItem.artists) {
                     Label("Artists", systemImage: "person.2")
-                }
-                
-                NavigationLink(value: NavigationItem.recentlyPlayed) {
-                    Label("Recently Played", systemImage: "clock")
                 }
             }
             
