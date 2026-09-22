@@ -73,25 +73,7 @@ public struct MiniPlayerView: View {
                 
                 HStack(spacing: 12) {
                     // Cover Image
-                    if let song = player.currentSong {
-                        if let url = song.effectiveCoverUrl {
-                            AsyncImage(url: url) { img in
-                                img.resizable().aspectRatio(contentMode: .fill)
-                            } placeholder: {
-                                Color.secondary.opacity(0.1)
-                            }
-                            .frame(width: 50, height: 50)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        } else if let path = song.localPath {
-                            LocalCoverImage(path: path)
-                                .frame(width: 50, height: 50)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        }
-                    } else {
-                        Color.secondary.opacity(0.1)
-                            .frame(width: 50, height: 50)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    }
+                    TrackCoverView(song: player.currentSong, size: 50, cornerRadius: 8)
                     
                     // Titles & Controls
                     VStack(alignment: .leading, spacing: 4) {

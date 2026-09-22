@@ -50,24 +50,10 @@ public struct BottomPlayerBar: View {
     // MARK: - Track Info
     private var trackInfoSection: some View {
         HStack(spacing: 12) {
-            if let song = player.currentSong {
-                Group {
-                    if let coverUrl = song.effectiveCoverUrl {
-                        AsyncImage(url: coverUrl) { image in
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            fallbackCover
-                        }
-                    } else if let path = song.localPath {
-                        LocalCoverImage(path: path)
-                    } else {
-                        fallbackCover
-                    }
-                }
-                .frame(width: 46, height: 46)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            TrackCoverView(song: player.currentSong, size: 46, cornerRadius: 6)
                 .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 1)
-                
+            
+            if let song = player.currentSong {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 4) {
                         Text(song.title)
@@ -94,10 +80,6 @@ public struct BottomPlayerBar: View {
                     }
                 }
             } else {
-                fallbackCover
-                    .frame(width: 46, height: 46)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Not Playing")
                         .font(.system(size: 13, weight: .medium))
@@ -107,15 +89,6 @@ public struct BottomPlayerBar: View {
                         .foregroundColor(.secondary.opacity(0.7))
                 }
             }
-        }
-    }
-    
-    private var fallbackCover: some View {
-        ZStack {
-            Color.secondary.opacity(0.1)
-            Image(systemName: "music.note")
-                .foregroundColor(.secondary)
-                .font(.system(size: 20))
         }
     }
     

@@ -11,27 +11,7 @@ public struct MenuBarView: View {
         VStack(spacing: 12) {
             // Track Info
             HStack(spacing: 10) {
-                if let song = currentSong {
-                    if let url = song.effectiveCoverUrl {
-                        AsyncImage(url: url) { img in
-                            img.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: { Color.secondary.opacity(0.1) }
-                            .frame(width: 42, height: 42)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                    } else if let path = song.localPath {
-                        LocalCoverImage(path: path)
-                            .frame(width: 42, height: 42)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                    }
-                } else {
-                    ZStack {
-                        Color.secondary.opacity(0.1)
-                        Image(systemName: "music.note")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(width: 42, height: 42)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
+                TrackCoverView(song: currentSong, size: 42, cornerRadius: 6)
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(currentSong?.title ?? "Not Playing")
