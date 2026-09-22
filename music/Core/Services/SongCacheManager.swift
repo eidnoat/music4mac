@@ -217,8 +217,9 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         }
         lock.unlock()
         
-        let task = Task(priority: .utility) { [weak self] in
-            await self?.cacheSong(song)
+        let task: Task<Void, Never> = Task(priority: .utility) { [weak self] in
+            guard let self = self else { return }
+            await self.cacheSong(song)
         }
         
         lock.lock()
