@@ -90,7 +90,6 @@ public struct SongListView: View {
     
     @State private var displayedSongs: [Song]
     @State private var songIndexMap: [String: Int] = [:]
-    @State private var tableVersion = UUID()
     
     public init(
         title: String = "Tracks",
@@ -138,9 +137,23 @@ public struct SongListView: View {
         UserDefaults.standard.removeObject(forKey: "sylvakru.songtable.sortOrder.v1")
     }
     
-    private func updateDisplayedSongs() {
-        let base: [Song]
+    private func updateDisplayedSongs(reSort: Bool = true) {
         let query = searchText.trimmingCharacters(in: .whitespaces)
+        
+        // In-place metadata update when song list count is unchanged and not re-sorting
+        if !reSort && query.isEmpty && displayedSongs.count == songs.count {
+            let dict = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
+            var updated = displayedSongs
+            for i in 0..<updated.count {
+                if let newSong = dict[updated[i].id] {
+                    updated[i] = newSong
+                }
+            }
+            self.displayedSongs = updated
+            return
+        }
+        
+        let base: [Song]
         if query.isEmpty {
             base = songs
         } else {
@@ -194,14 +207,14 @@ public struct SongListView: View {
             }
         }
         .onChange(of: searchText) { _, _ in
-            updateDisplayedSongs()
+            updateDisplayedSongs(reSort: true)
         }
-        .onChange(of: songs) { _, _ in
-            updateDisplayedSongs()
-            tableVersion = UUID()
+        .onChange(of: songs) { oldSongs, newSongs in
+            let countUnchanged = (oldSongs.count == newSongs.count)
+            updateDisplayedSongs(reSort: !countUnchanged)
         }
         .onChange(of: sortOrder) { _, newSort in
-            updateDisplayedSongs()
+            updateDisplayedSongs(reSort: true)
             if allowSorting && (title == "Tracks" || title == "All Songs") {
                 let savedList = Self.encodeSortOrder(newSort)
                 if let data = try? JSONEncoder().encode(savedList) {
@@ -300,7 +313,6 @@ public struct SongListView: View {
             .customizationID("dateAdded")
             .disabledCustomizationBehavior(.reorder)
         }
-        .id(tableVersion)
         .contextMenu(forSelectionType: Song.ID.self) { items in
             songContextMenu(items: items)
         } primaryAction: { items in
@@ -379,7 +391,6 @@ public struct SongListView: View {
             .customizationID("dateAdded")
             .disabledCustomizationBehavior(.reorder)
         }
-        .id(tableVersion)
         .contextMenu(forSelectionType: Song.ID.self) { items in
             songContextMenu(items: items)
         } primaryAction: { items in
