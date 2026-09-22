@@ -21,7 +21,7 @@ public struct SidebarView: View {
         List(selection: $selection) {
             Section("Library") {
                 NavigationLink(value: NavigationItem.songs) {
-                    Label("All Songs", systemImage: "music.note.list")
+                    Label("Tracks", systemImage: "music.note.list")
                 }
                 
                 NavigationLink(value: NavigationItem.albums) {

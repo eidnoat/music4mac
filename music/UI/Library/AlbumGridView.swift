@@ -20,22 +20,16 @@ public struct AlbumGridView: View {
                 }
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("All Albums")
-                            .font(.title2.bold())
-                            .padding(.top, 16)
-                        
-                        LazyVGrid(columns: columns, spacing: 20) {
-                            ForEach(albums) { album in
-                                AlbumCard(album: album)
-                                    .onTapGesture {
-                                        nav.selectedAlbum = album
-                                    }
-                            }
+                    LazyVGrid(columns: columns, spacing: 20) {
+                        ForEach(albums) { album in
+                            AlbumCard(album: album)
+                                .onTapGesture {
+                                    nav.selectedAlbum = album
+                                }
                         }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 24)
+                    .padding(.vertical, 20)
                 }
             }
         }

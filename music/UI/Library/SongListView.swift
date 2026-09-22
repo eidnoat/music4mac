@@ -88,7 +88,7 @@ public struct SongListView: View {
     @State private var songIndexMap: [String: Int] = [:]
     
     public init(
-        title: String = "All Songs",
+        title: String = "Tracks",
         songs: [Song],
         allowSorting: Bool = true,
         initialSortOrder: [KeyPathComparator<Song>]? = nil
@@ -99,7 +99,7 @@ public struct SongListView: View {
         let defaultSort: [KeyPathComparator<Song>]
         if let custom = initialSortOrder {
             defaultSort = custom
-        } else if allowSorting && title == "All Songs" {
+        } else if allowSorting && (title == "Tracks" || title == "All Songs") {
             if let saved = Self.loadSavedSortOrder(), !saved.isEmpty {
                 defaultSort = saved
             } else {
@@ -164,47 +164,6 @@ public struct SongListView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            // Header Bar with Actions
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.title2.bold())
-                    Text("\(songs.count) tracks")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                Button {
-                    if !displayedSongs.isEmpty {
-                        player.playSong(displayedSongs[0], in: displayedSongs)
-                    }
-                } label: {
-                    Label("Play All", systemImage: "play.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                
-                Button {
-                    if !displayedSongs.isEmpty {
-                        queue.playMode = .shuffle
-                        var shuffled = displayedSongs
-                        shuffled.shuffle()
-                        player.playSong(shuffled[0], in: shuffled)
-                    }
-                } label: {
-                    Label("Shuffle", systemImage: "shuffle")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
-            
-            Divider()
-            
             if displayedSongs.isEmpty {
                 VStack(spacing: 12) {
                     Spacer()
@@ -237,7 +196,7 @@ public struct SongListView: View {
         }
         .onChange(of: sortOrder) { _, newSort in
             updateDisplayedSongs()
-            if allowSorting && title == "All Songs" {
+            if allowSorting && (title == "Tracks" || title == "All Songs") {
                 let savedList = Self.encodeSortOrder(newSort)
                 if let data = try? JSONEncoder().encode(savedList) {
                     UserDefaults.standard.set(data, forKey: Self.sortStorageKey)

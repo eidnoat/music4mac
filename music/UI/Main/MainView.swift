@@ -23,7 +23,7 @@ public struct MainView: View {
                 Group {
                     switch nav.selectedSidebarItem {
                     case .songs, .none:
-                        SongListView(title: "All Songs", songs: storage.songs)
+                        SongListView(title: "Tracks", songs: storage.songs)
                             .id("all_songs")
                     case .albums:
                         AlbumGridView(albums: storage.albums)
