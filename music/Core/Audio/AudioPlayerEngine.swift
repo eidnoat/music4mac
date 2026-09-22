@@ -3,7 +3,7 @@ import AVFoundation
 import AppKit
 import Combine
 
-public final class AudioPlayerEngine: ObservableObject {
+public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     public static let shared = AudioPlayerEngine()
     
     private let player = AVPlayer()
@@ -193,13 +193,11 @@ public final class AudioPlayerEngine: ObservableObject {
                 }
             }
             
-            loadingTimeoutTask = Task { [weak self] in
+            loadingTimeoutTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: UInt64(12 * 1_000_000_000))
-                guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    guard let self = self, self.currentSong?.id == song.id, self.status == .loading else { return }
-                    self.handleLoadingTimeout(song: song)
-                }
+                guard !Task.isCancelled, let self = self else { return }
+                guard self.currentSong?.id == song.id, self.status == .loading else { return }
+                self.handleLoadingTimeout(song: song)
             }
         }
     }
@@ -351,23 +349,17 @@ public final class AudioPlayerEngine: ObservableObject {
         }
         
         if song.source == .navidrome, let remoteId = song.remoteId {
-            Task {
-                if let lrc = try? await NavidromeClient.shared.getLyrics(songId: remoteId) {
+            Task { @MainActor [weak self] in
+                let lrc = try? await NavidromeClient.shared.getLyrics(songId: remoteId)
+                guard let self = self, self.currentSong?.id == song.id else { return }
+                if let lrc = lrc {
                     SongCacheManager.shared.saveCachedLyrics(forId: song.id, lyrics: lrc)
-                    await MainActor.run {
-                        if self.currentSong?.id == song.id {
-                            let parsed = LyricsService.shared.parse(lrcContent: lrc, songDuration: song.duration)
-                            self.parsedLyrics = parsed
-                            self.lyricsOffset = parsed.offset
-                            self.updateLyricsActiveIndex()
-                        }
-                    }
+                    let parsed = LyricsService.shared.parse(lrcContent: lrc, songDuration: song.duration)
+                    self.parsedLyrics = parsed
+                    self.lyricsOffset = parsed.offset
+                    self.updateLyricsActiveIndex()
                 } else {
-                    await MainActor.run {
-                        if self.currentSong?.id == song.id {
-                            self.parsedLyrics = ParsedLyrics(isKaraoke: false, lines: [LyricLine(start: 0, text: "No lyrics available")])
-                        }
-                    }
+                    self.parsedLyrics = ParsedLyrics(isKaraoke: false, lines: [LyricLine(start: 0, text: "No lyrics available")])
                 }
             }
         } else {
