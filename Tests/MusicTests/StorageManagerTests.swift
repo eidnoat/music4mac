@@ -107,4 +107,30 @@ final class StorageManagerTests: XCTestCase {
         XCTAssertEqual(sortedDesc[1].id, "s1")
         XCTAssertEqual(sortedDesc[2].id, "s3")
     }
+    
+    func testUpsertSongsUpdatesDataVersionAndMergesFields() {
+        let storage = StorageManager.shared
+        let originalSongs = storage.songs
+        let initialVersion = storage.dataVersion
+        
+        let date1 = Date(timeIntervalSince1970: 1000)
+        let date2 = Date(timeIntervalSince1970: 2000)
+        
+        let localSong = Song(id: "s_merge", title: "Merge Song", artist: "Artist", album: "Album", playCount: 5, lastPlayed: date2, localPath: "/local/path")
+        storage.songs = [localSong]
+        
+        let remoteSong = Song(id: "s_merge", title: "Merge Song", artist: "Artist", album: "Album", playCount: 2, lastPlayed: date1)
+        storage.upsertSongs([remoteSong])
+        
+        XCTAssertNotEqual(storage.dataVersion, initialVersion)
+        let merged = storage.songs.first(where: { $0.id == "s_merge" })
+        XCTAssertNotNil(merged)
+        XCTAssertEqual(merged?.playCount, 5)
+        XCTAssertEqual(merged?.lastPlayed, date2)
+        XCTAssertEqual(merged?.localPath, "/local/path")
+        
+        // Restore
+        storage.songs = originalSongs
+        storage.updateDerivedCollections()
+    }
 }

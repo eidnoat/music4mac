@@ -14,6 +14,7 @@ public final class StorageManager: ObservableObject {
     @Published public var albums: [Album] = []
     @Published public var artists: [Artist] = []
     @Published public var history: [String] = [] // Song IDs ordered by recent play
+    @Published public var dataVersion: UUID = UUID()
     
     public let baseDir: URL
     
@@ -100,6 +101,15 @@ public final class StorageManager: ObservableObject {
                 songs: artistSongs.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })
             )
         }.sorted(by: { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
+        
+        if let currentAlbum = NavigationCoordinator.shared.selectedAlbum,
+           let updated = self.albums.first(where: { $0.id == currentAlbum.id }) {
+            NavigationCoordinator.shared.selectedAlbum = updated
+        }
+        if let currentArtist = NavigationCoordinator.shared.selectedArtist,
+           let updated = self.artists.first(where: { $0.id == currentArtist.id }) {
+            NavigationCoordinator.shared.selectedArtist = updated
+        }
     }
     
     public func saveLibrary() {
@@ -134,15 +144,34 @@ public final class StorageManager: ObservableObject {
             dict[song.id] = song
         }
         for song in newSongs {
-            dict[song.id] = song
+            if let existing = dict[song.id] {
+                var merged = song
+                if let existingLast = existing.lastPlayed, let newLast = song.lastPlayed {
+                    merged.lastPlayed = max(existingLast, newLast)
+                } else {
+                    merged.lastPlayed = song.lastPlayed ?? existing.lastPlayed
+                }
+                merged.playCount = max(existing.playCount, song.playCount)
+                if merged.lyrics == nil {
+                    merged.lyrics = existing.lyrics
+                }
+                if merged.localPath == nil {
+                    merged.localPath = existing.localPath
+                }
+                dict[song.id] = merged
+            } else {
+                dict[song.id] = song
+            }
         }
         self.songs = Array(dict.values).sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })
+        self.dataVersion = UUID()
         updateDerivedCollections()
         saveLibrary()
     }
     
     public func removeSongs(where predicate: (Song) -> Bool) {
         songs.removeAll(where: predicate)
+        self.dataVersion = UUID()
         updateDerivedCollections()
         saveLibrary()
     }
@@ -188,12 +217,14 @@ public final class StorageManager: ObservableObject {
                 try? data.write(to: url, options: .atomic)
             }
         }
+        self.dataVersion = UUID()
         saveLibrary()
     }
     
     public func incrementPlayCount(songId: String) {
         if let idx = songs.firstIndex(where: { $0.id == songId }) {
             songs[idx].playCount += 1
+            self.dataVersion = UUID()
             saveLibrary()
         }
     }

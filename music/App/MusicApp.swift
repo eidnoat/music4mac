@@ -16,7 +16,7 @@ public struct MusicApp: App {
                 .background(Color(nsColor: .windowBackgroundColor))
                 .preferredColorScheme(themeManager.effectiveColorScheme)
         }
-        .windowToolbarStyle(.unified(showsTitle: true))
+        .windowToolbarStyle(.unified(showsTitle: false))
         .defaultSize(width: 1080, height: 700)
         .commands {
             PlaybackCommands()

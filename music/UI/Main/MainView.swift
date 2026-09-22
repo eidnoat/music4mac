@@ -8,6 +8,7 @@ public struct MainView: View {
     
     @ObservedObject var storage = StorageManager.shared
     @ObservedObject var themeManager = ThemeManager.shared
+    @State private var isRefreshing: Bool = false
     
     public init() {}
     
@@ -24,11 +25,13 @@ public struct MainView: View {
                     switch nav.selectedSidebarItem {
                     case .songs, .none:
                         SongListView(title: "Tracks", songs: storage.songs)
-                            .id("all_songs")
+                            .id("all_songs_\(storage.dataVersion)")
                     case .albums:
                         AlbumGridView(albums: storage.albums)
+                            .id("albums_\(storage.dataVersion)")
                     case .artists:
                         ArtistListView(artists: storage.artists)
+                            .id("artists_\(storage.dataVersion)")
                     case .navidrome:
                         NavidromeConfigView()
                     case .settings:
@@ -59,6 +62,35 @@ public struct MainView: View {
                     showQueue: $showQueue
                 )
             }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 8) {
+                        Text("music")
+                            .font(.system(size: 13, weight: .semibold))
+                        
+                        Button {
+                            refreshServerData()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(isRefreshing ? .accentColor : .secondary)
+                                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                                .animation(
+                                    isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default,
+                                    value: isRefreshing
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isRefreshing)
+                        .keyboardShortcut("r", modifiers: .command)
+                        .help(
+                            !NavidromeClient.shared.hasValidCredentials
+                                ? "Connect to Navidrome in settings to enable server sync"
+                                : (isRefreshing ? "Fetching latest data from server..." : "Refresh library from server (⌘R)")
+                        )
+                    }
+                }
+            }
         }
         .navigationTitle("music")
         .preferredColorScheme(themeManager.effectiveColorScheme)
@@ -76,6 +108,29 @@ public struct MainView: View {
                     await MainActor.run {
                         storage.upsertSongs(songs)
                     }
+                }
+            }
+        }
+    }
+    
+    private func refreshServerData() {
+        guard !isRefreshing else { return }
+        guard NavidromeClient.shared.hasValidCredentials else {
+            nav.selectedSidebarItem = .navidrome
+            return
+        }
+        
+        isRefreshing = true
+        Task {
+            do {
+                let songs = try await NavidromeClient.shared.getAllSongs()
+                await MainActor.run {
+                    storage.upsertSongs(songs)
+                    self.isRefreshing = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.isRefreshing = false
                 }
             }
         }

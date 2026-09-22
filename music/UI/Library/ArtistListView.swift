@@ -3,6 +3,7 @@ import SwiftUI
 public struct ArtistListView: View {
     public let artists: [Artist]
     @ObservedObject var nav = NavigationCoordinator.shared
+    @ObservedObject var storage = StorageManager.shared
     
     public init(artists: [Artist]) {
         self.artists = artists
@@ -11,7 +12,7 @@ public struct ArtistListView: View {
     public var body: some View {
         NavigationSplitView {
             ScrollViewReader { proxy in
-                List(artists, selection: $nav.selectedArtist) { artist in
+                List(storage.artists, selection: $nav.selectedArtist) { artist in
                     NavigationLink(value: artist) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(artist.name)
@@ -24,7 +25,6 @@ public struct ArtistListView: View {
                     }
                     .id(artist.id)
                 }
-                .navigationTitle("Artists")
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
                 .onAppear {
                     if let selected = nav.selectedArtist {
@@ -40,7 +40,8 @@ public struct ArtistListView: View {
                 }
             }
         } detail: {
-            if let artist = nav.selectedArtist {
+            if let selected = nav.selectedArtist {
+                let artist = storage.artists.first(where: { $0.id == selected.id }) ?? selected
                 VStack(alignment: .leading, spacing: 0) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
@@ -66,6 +67,7 @@ public struct ArtistListView: View {
                     Divider()
                     
                     SongListView(title: "", songs: artist.songs)
+                        .id("artist_songs_\(artist.id)_\(artist.songs.count)")
                 }
             } else {
                 Text("Select an artist from the left")

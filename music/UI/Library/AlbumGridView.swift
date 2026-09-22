@@ -3,6 +3,7 @@ import SwiftUI
 public struct AlbumGridView: View {
     public let albums: [Album]
     @ObservedObject var nav = NavigationCoordinator.shared
+    @ObservedObject var storage = StorageManager.shared
     
     private let columns = [
         GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 20)
@@ -14,14 +15,15 @@ public struct AlbumGridView: View {
     
     public var body: some View {
         Group {
-            if let album = nav.selectedAlbum {
-                AlbumDetailView(album: album) {
+            if let selected = nav.selectedAlbum {
+                let currentAlbum = storage.albums.first(where: { $0.id == selected.id }) ?? selected
+                AlbumDetailView(album: currentAlbum) {
                     nav.selectedAlbum = nil
                 }
             } else {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 20) {
-                        ForEach(albums) { album in
+                        ForEach(storage.albums) { album in
                             AlbumCard(album: album)
                                 .onTapGesture {
                                     nav.selectedAlbum = album
@@ -167,6 +169,7 @@ public struct AlbumDetailView: View {
             Divider()
             
             SongListView(title: "", songs: album.songs)
+                .id("album_songs_\(album.id)_\(album.songs.count)")
         }
     }
 }

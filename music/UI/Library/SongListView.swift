@@ -90,6 +90,7 @@ public struct SongListView: View {
     
     @State private var displayedSongs: [Song]
     @State private var songIndexMap: [String: Int] = [:]
+    @State private var tableVersion = UUID()
     
     public init(
         title: String = "Tracks",
@@ -197,6 +198,7 @@ public struct SongListView: View {
         }
         .onChange(of: songs) { _, _ in
             updateDisplayedSongs()
+            tableVersion = UUID()
         }
         .onChange(of: sortOrder) { _, newSort in
             updateDisplayedSongs()
@@ -298,6 +300,7 @@ public struct SongListView: View {
             .customizationID("dateAdded")
             .disabledCustomizationBehavior(.reorder)
         }
+        .id(tableVersion)
         .contextMenu(forSelectionType: Song.ID.self) { items in
             songContextMenu(items: items)
         } primaryAction: { items in
@@ -376,6 +379,7 @@ public struct SongListView: View {
             .customizationID("dateAdded")
             .disabledCustomizationBehavior(.reorder)
         }
+        .id(tableVersion)
         .contextMenu(forSelectionType: Song.ID.self) { items in
             songContextMenu(items: items)
         } primaryAction: { items in
