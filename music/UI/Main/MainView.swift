@@ -19,18 +19,28 @@ public struct MainView: View {
             SidebarView(selection: $nav.selectedSidebarItem)
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
                 .toolbar {
-                    ToolbarItem(placement: .navigation) {
+                    ToolbarItem {
                         Button {
                             refreshServerData()
                         } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(isRefreshing ? .appleMusicRed : .secondary)
-                                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                                .animation(
-                                    isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default,
-                                    value: isRefreshing
-                                )
+                            Group {
+                                if #available(macOS 15.0, *) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .symbolEffect(.rotate, options: .repeating, isActive: isRefreshing)
+                                } else {
+                                    if isRefreshing {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 12, weight: .medium))
+                                    }
+                                }
+                            }
+                            .foregroundColor(isRefreshing ? .appleMusicRed : .secondary)
+                            .frame(width: 16, height: 16)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .disabled(isRefreshing)
@@ -87,7 +97,6 @@ public struct MainView: View {
                 )
             }
         }
-        .navigationTitle("")
         .tint(Color.appleMusicRed)
         .accentColor(Color.appleMusicRed)
         .preferredColorScheme(themeManager.effectiveColorScheme)
@@ -95,7 +104,7 @@ public struct MainView: View {
             if isShown { showQueue = false }
         }
         .onChange(of: showQueue) { _, isShown in
-            if isShown { showLyrics = false }
+            if isShown { showQueue = false }
         }
         .task {
             // Auto-refresh Navidrome tracks if configured and any tracks are missing dateAdded
@@ -119,13 +128,22 @@ public struct MainView: View {
         
         isRefreshing = true
         Task {
+            let startTime = Date()
             do {
                 let songs = try await NavidromeClient.shared.getAllSongs()
+                let elapsed = Date().timeIntervalSince(startTime)
+                if elapsed < 0.8 {
+                    try? await Task.sleep(nanoseconds: UInt64((0.8 - elapsed) * 1_000_000_000))
+                }
                 await MainActor.run {
                     storage.upsertSongs(songs)
                     self.isRefreshing = false
                 }
             } catch {
+                let elapsed = Date().timeIntervalSince(startTime)
+                if elapsed < 0.8 {
+                    try? await Task.sleep(nanoseconds: UInt64((0.8 - elapsed) * 1_000_000_000))
+                }
                 await MainActor.run {
                     self.isRefreshing = false
                 }
