@@ -3,8 +3,9 @@ name: macOS Native Swift CI
 on:
   push:
     branches:
-      - feat/native-macos-swift
       - main
+    tags:
+      - 'v*'
   pull_request:
   workflow_dispatch:
 
@@ -12,6 +13,8 @@ jobs:
   build-and-package:
     runs-on: macos-15
     timeout-minutes: 20
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code
@@ -31,8 +34,17 @@ jobs:
           chmod +x ./build_app.sh
           ./build_app.sh
 
-      - name: Upload App
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: music-macOS-App
           path: dist/
+
+      - name: Release Assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            music.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

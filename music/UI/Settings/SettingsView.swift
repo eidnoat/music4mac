@@ -217,7 +217,7 @@ public struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("About music")
                         .font(.title3.bold())
-                    Text("Version 1.0.0 · Native macOS Swift")
+                    Text("Version 0.0.1 · Native macOS Swift")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     Text("A hi-fi music player for local and self-hosted media libraries.")
