@@ -507,9 +507,7 @@ public struct SongListView: View {
                         }
                     } else {
                         Button("Cache Track") {
-                            Task(priority: .utility) {
-                                await SongCacheManager.shared.cacheSong(song)
-                            }
+                            SongCacheManager.shared.startAutoCache(for: song)
                         }
                     }
                 }
@@ -534,10 +532,8 @@ public struct SongListView: View {
                 if !remoteSongs.isEmpty {
                     Divider()
                     Button("Cache Selected Tracks (\(remoteSongs.count))") {
-                        Task(priority: .utility) {
-                            for s in remoteSongs {
-                                await SongCacheManager.shared.cacheSong(s)
-                            }
+                        for s in remoteSongs {
+                            SongCacheManager.shared.startAutoCache(for: s)
                         }
                     }
                     Button("Remove Selected from Cache") {

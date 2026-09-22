@@ -111,4 +111,37 @@ final class SongCacheManagerTests: XCTestCase {
         XCTAssertFalse(manager.isDownloading(id: testId))
         XCTAssertFalse(manager.downloadingIds.contains(testId))
     }
+    
+    func testStartAutoCacheGuardsAndTriggers() {
+        let manager = SongCacheManager.shared
+        
+        // 1. Local songs should not be cached via startAutoCache
+        let localSong = Song(
+            id: "local_track_1",
+            title: "Local Track",
+            artist: "Local Artist",
+            album: "Local Album",
+            source: .local,
+            localPath: "/path/to/local.mp3"
+        )
+        manager.startAutoCache(for: localSong)
+        XCTAssertFalse(manager.isDownloading(id: localSong.id))
+        
+        // 2. Disabled cache manager should not trigger auto-cache
+        let originalEnabled = manager.isEnabled
+        manager.isEnabled = false
+        let remoteSong = Song(
+            id: "remote_track_disabled",
+            title: "Remote Track",
+            artist: "Remote Artist",
+            album: "Remote Album",
+            source: .navidrome,
+            remoteId: "remote_track_disabled"
+        )
+        manager.startAutoCache(for: remoteSong)
+        XCTAssertFalse(manager.isDownloading(id: remoteSong.id))
+        
+        // Restore
+        manager.isEnabled = originalEnabled
+    }
 }

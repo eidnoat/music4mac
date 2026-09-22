@@ -22,10 +22,12 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     
     private let downloadSession: URLSession = {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 15.0
-        config.timeoutIntervalForResource = 30.0
+        config.timeoutIntervalForRequest = 30.0
+        config.timeoutIntervalForResource = 600.0
         return URLSession(configuration: config)
     }()
+    
+    private var activeDownloadTasks: [String: Task<Void, Never>] = [:]
     
     public let baseDir: URL
     public let cacheDirectory: URL
@@ -69,8 +71,12 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
             try? FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
         }
         
-        let savedEnabled = UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
-        let savedSize = UserDefaults.standard.object(forKey: maxSizeKey) as? Int ?? 5
+        let savedEnabled = (UserDefaults.standard.object(forKey: enabledKey) as? Bool)
+            ?? (UserDefaults.standard.object(forKey: "sylvakru.cache.enabled") as? Bool)
+            ?? true
+        let savedSize = (UserDefaults.standard.object(forKey: maxSizeKey) as? Int)
+            ?? (UserDefaults.standard.object(forKey: "sylvakru.cache.max_size_gb") as? Int)
+            ?? 5
         
         self.isEnabled = savedEnabled
         self.maxSizeGB = max(1, min(20, savedSize))
@@ -136,7 +142,9 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         defer { lock.unlock() }
         guard isEnabled else { return nil }
         guard let track = cachedTracks[id] else { return nil }
-        return cacheDirectory.appendingPathComponent(track.fileName)
+        let url = cacheDirectory.appendingPathComponent(track.fileName)
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
     }
     
     public func recordAccess(songId: String) {
@@ -197,8 +205,35 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         }
     }
     
+    public func startAutoCache(for song: Song) {
+        guard isEnabled else { return }
+        guard song.source == .navidrome, let remoteId = song.remoteId, !remoteId.isEmpty else { return }
+        guard !isSongCached(id: song.id) else { return }
+        
+        lock.lock()
+        guard !downloadingSongIds.contains(song.id) else {
+            lock.unlock()
+            return
+        }
+        lock.unlock()
+        
+        let task = Task(priority: .utility) { [weak self] in
+            await self?.cacheSong(song)
+        }
+        
+        lock.lock()
+        activeDownloadTasks[song.id] = task
+        lock.unlock()
+    }
+    
     public func cancelCaching(songId: String) {
-        endDownloading(songId: songId)
+        lock.lock()
+        let task = activeDownloadTasks.removeValue(forKey: songId)
+        downloadingSongIds.remove(songId)
+        lock.unlock()
+        
+        task?.cancel()
+        
         DispatchQueue.main.async { [weak self] in
             self?.downloadingIds.remove(songId)
         }
@@ -230,6 +265,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         downloadingSongIds.remove(songId)
+        activeDownloadTasks.removeValue(forKey: songId)
     }
     
     private func commitCachedTrack(song: Song, fileName: String, fileSize: Int64) -> (updatedSize: Int64, updatedCount: Int, snapshot: [CachedTrackInfo]) {
@@ -300,6 +336,17 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
             
             scheduleSaveIndex(snapshot)
             
+            // Immediately publish cached state to UI so the cached icon appears without waiting for cover/lyrics!
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.currentCacheSizeBytes = updatedSize
+                self.cachedTrackCount = updatedCount
+                self.cachedIds.insert(songId)
+                self.downloadingIds.remove(songId)
+            }
+            
+            evictOldestIfNeeded()
+            
             // Also cache cover artwork in background
             if let coverUrl = song.coverUrl ?? NavidromeClient.shared.getCoverArtUrl(id: song.coverId ?? song.remoteId) {
                 if let (coverData, _) = try? await downloadSession.data(from: coverUrl), !coverData.isEmpty {
@@ -319,16 +366,6 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
                     try? lrc.write(to: lyricsDest, atomically: true, encoding: .utf8)
                 }
             }
-            
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.currentCacheSizeBytes = updatedSize
-                self.cachedTrackCount = updatedCount
-                self.cachedIds.insert(songId)
-                self.downloadingIds.remove(songId)
-            }
-            
-            evictOldestIfNeeded()
         } catch {
             print("[SongCacheManager] Failed to cache song: \(song.title), error: \(error)")
         }
@@ -426,9 +463,15 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     
     public func clearAllCache() {
         lock.lock()
+        let tasks = Array(activeDownloadTasks.values)
+        activeDownloadTasks.removeAll()
         cachedTracks.removeAll()
         downloadingSongIds.removeAll()
         lock.unlock()
+        
+        for task in tasks {
+            task.cancel()
+        }
         
         scheduleSaveIndex([])
         

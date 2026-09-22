@@ -36,7 +36,6 @@ public final class AudioPlayerEngine: ObservableObject {
     private let playQueue = PlayQueueManager.shared
     private var scrobbledCurrentSong = false
     private var isSeeking = false
-    private var autoCacheTask: Task<Void, Never>?
     private var itemStatusObservation: NSKeyValueObservation?
     private var loadingTimeoutTask: Task<Void, Never>?
     private let playbackLoadingTimeout: TimeInterval = 12.0
@@ -85,8 +84,6 @@ public final class AudioPlayerEngine: ObservableObject {
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
-        autoCacheTask?.cancel()
-        autoCacheTask = nil
         self.errorMessage = nil
         
         self.isSeeking = false
@@ -123,9 +120,7 @@ public final class AudioPlayerEngine: ObservableObject {
                 
                 // Auto-cache played song in background if enabled
                 if SongCacheManager.shared.isEnabled {
-                    autoCacheTask = Task(priority: .utility) {
-                        await SongCacheManager.shared.cacheSong(song)
-                    }
+                    SongCacheManager.shared.startAutoCache(for: song)
                 }
             }
         }
@@ -222,8 +217,6 @@ public final class AudioPlayerEngine: ObservableObject {
         player.pause()
         player.replaceCurrentItem(with: nil)
         
-        autoCacheTask?.cancel()
-        autoCacheTask = nil
         SongCacheManager.shared.cancelCaching(songId: song.id)
         
         let msg = "Network timeout: track failed to load. Please check your network connection."
@@ -239,8 +232,6 @@ public final class AudioPlayerEngine: ObservableObject {
         player.pause()
         player.replaceCurrentItem(with: nil)
         
-        autoCacheTask?.cancel()
-        autoCacheTask = nil
         SongCacheManager.shared.cancelCaching(songId: song.id)
         
         let msg = "Network error: \(message)"
@@ -460,8 +451,6 @@ public final class AudioPlayerEngine: ObservableObject {
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
-        autoCacheTask?.cancel()
-        autoCacheTask = nil
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemPlaybackStalled, object: nil)
         player.pause()
