@@ -96,7 +96,13 @@ public struct MainView: View {
                     showQueue: $showQueue
                 )
             }
+            .toolbar {
+                ToolbarItem {
+                    Spacer()
+                }
+            }
         }
+        .navigationTitle("music")
         .tint(Color.appleMusicRed)
         .accentColor(Color.appleMusicRed)
         .preferredColorScheme(themeManager.effectiveColorScheme)

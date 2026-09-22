@@ -187,7 +187,7 @@ public struct SongListView: View {
                 nonSortableTable
             }
         }
-        .searchable(text: $searchText, prompt: "Search songs, artists, or albums")
+        .searchable(text: $searchText, placement: .toolbar, prompt: "Search songs, artists, or albums")
         .onChange(of: columnCustomization) { _, newValue in
             if let data = try? JSONEncoder().encode(newValue) {
                 UserDefaults.standard.set(data, forKey: Self.columnStorageKey)
