@@ -2,7 +2,7 @@ import Foundation
 import MediaPlayer
 import AppKit
 
-public final class NowPlayingManager {
+public final class NowPlayingManager: @unchecked Sendable {
     public static let shared = NowPlayingManager()
     
     private init() {
@@ -14,31 +14,41 @@ public final class NowPlayingManager {
         
         commandCenter.playCommand.isEnabled = true
         commandCenter.playCommand.addTarget { _ in
-            AudioPlayerEngine.shared.play()
+            DispatchQueue.main.async {
+                AudioPlayerEngine.shared.play()
+            }
             return .success
         }
         
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { _ in
-            AudioPlayerEngine.shared.pause()
+            DispatchQueue.main.async {
+                AudioPlayerEngine.shared.pause()
+            }
             return .success
         }
         
         commandCenter.togglePlayPauseCommand.isEnabled = true
         commandCenter.togglePlayPauseCommand.addTarget { _ in
-            AudioPlayerEngine.shared.togglePlayPause()
+            DispatchQueue.main.async {
+                AudioPlayerEngine.shared.togglePlayPause()
+            }
             return .success
         }
         
         commandCenter.nextTrackCommand.isEnabled = true
         commandCenter.nextTrackCommand.addTarget { _ in
-            AudioPlayerEngine.shared.skipToNext()
+            DispatchQueue.main.async {
+                AudioPlayerEngine.shared.skipToNext()
+            }
             return .success
         }
         
         commandCenter.previousTrackCommand.isEnabled = true
         commandCenter.previousTrackCommand.addTarget { _ in
-            AudioPlayerEngine.shared.skipToPrevious()
+            DispatchQueue.main.async {
+                AudioPlayerEngine.shared.skipToPrevious()
+            }
             return .success
         }
         
@@ -47,7 +57,10 @@ public final class NowPlayingManager {
             guard let posEvent = event as? MPChangePlaybackPositionCommandEvent else {
                 return .commandFailed
             }
-            AudioPlayerEngine.shared.seek(to: posEvent.positionTime)
+            let targetPos = posEvent.positionTime
+            DispatchQueue.main.async {
+                AudioPlayerEngine.shared.seek(to: targetPos)
+            }
             return .success
         }
     }

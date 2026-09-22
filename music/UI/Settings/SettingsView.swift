@@ -271,9 +271,8 @@ public struct SettingsView: View {
     private func removeFolder(_ url: URL) {
         BookmarkManager.shared.removeBookmark(for: url)
         folders.removeAll(where: { $0 == url })
-        // Remove songs belonging to this folder
-        storage.songs.removeAll(where: { $0.localPath?.hasPrefix(url.path) == true })
-        storage.saveLibrary()
+        // Remove songs belonging to this folder and update derived collections
+        storage.removeSongs { $0.localPath?.hasPrefix(url.path) == true }
     }
     
     private func scanFolder(_ url: URL) {

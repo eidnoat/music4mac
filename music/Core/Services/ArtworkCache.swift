@@ -3,7 +3,7 @@ import AppKit
 import AVFoundation
 import ImageIO
 
-public final class ArtworkCache {
+public final class ArtworkCache: @unchecked Sendable {
     public static let shared = ArtworkCache()
     
     private let cache = NSCache<NSString, NSImage>()
@@ -43,11 +43,11 @@ public final class ArtworkCache {
             return nil
         }
         
-        let rawData: Data?
+        let task: Task<Data?, Never>
         if let inFlight = inFlightTasks[path] {
-            rawData = await inFlight.value
+            task = inFlight
         } else {
-            let task = Task.detached(priority: .utility) { () -> Data? in
+            let newTask = Task.detached(priority: .utility) { () -> Data? in
                 let url = URL(fileURLWithPath: path)
                 let asset = AVURLAsset(url: url)
                 guard let metadata = try? await asset.load(.commonMetadata) else {
@@ -62,10 +62,15 @@ public final class ArtworkCache {
                 }
                 return nil
             }
-            inFlightTasks[path] = task
-            rawData = await task.value
+            inFlightTasks[path] = newTask
+            task = newTask
+        }
+        
+        defer {
             inFlightTasks.removeValue(forKey: path)
         }
+        
+        let rawData = await task.value
         
         if let cached = image(for: path) {
             return cached

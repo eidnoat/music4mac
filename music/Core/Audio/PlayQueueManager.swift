@@ -99,7 +99,12 @@ public final class PlayQueueManager: ObservableObject {
     }
     
     public func move(from source: IndexSet, to destination: Int) {
+        let currentSongId = currentSong?.id
         queue.move(fromOffsets: source, toOffset: destination)
+        if let currentSongId = currentSongId,
+           let newIndex = queue.firstIndex(where: { $0.id == currentSongId }) {
+            currentIndex = newIndex
+        }
     }
     
     public func nextSong() -> Song? {

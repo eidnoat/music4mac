@@ -149,6 +149,12 @@ public final class StorageManager: ObservableObject {
         saveLibrary()
     }
     
+    public func removeSongs(where predicate: (Song) -> Bool) {
+        songs.removeAll(where: predicate)
+        updateDerivedCollections()
+        saveLibrary()
+    }
+    
     // MARK: - History & Play Count
     
     private func loadHistory() {

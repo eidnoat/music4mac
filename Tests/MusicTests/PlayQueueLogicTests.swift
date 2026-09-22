@@ -38,4 +38,27 @@ final class PlayQueueLogicTests: XCTestCase {
         XCTAssertEqual(queueManager.queue.count, 3)
         XCTAssertEqual(queueManager.queue[1].id, "3")
     }
+    
+    func testQueueMoveMaintainsCurrentSongIndex() {
+        let queueManager = PlayQueueManager.shared
+        let song1 = Song(id: "1", title: "Song 1", artist: "Artist 1", album: "Album 1")
+        let song2 = Song(id: "2", title: "Song 2", artist: "Artist 2", album: "Album 2")
+        let song3 = Song(id: "3", title: "Song 3", artist: "Artist 3", album: "Album 3")
+        
+        queueManager.setQueue([song1, song2, song3], startAt: 1)
+        XCTAssertEqual(queueManager.currentIndex, 1)
+        XCTAssertEqual(queueManager.currentSong?.id, "2")
+        
+        // Move song 2 from index 1 to index 0
+        queueManager.move(from: IndexSet(integer: 1), to: 0)
+        XCTAssertEqual(queueManager.queue[0].id, "2")
+        XCTAssertEqual(queueManager.currentIndex, 0)
+        XCTAssertEqual(queueManager.currentSong?.id, "2")
+        
+        // Move song 2 from index 0 to index 3 (end)
+        queueManager.move(from: IndexSet(integer: 0), to: 3)
+        XCTAssertEqual(queueManager.queue[2].id, "2")
+        XCTAssertEqual(queueManager.currentIndex, 2)
+        XCTAssertEqual(queueManager.currentSong?.id, "2")
+    }
 }

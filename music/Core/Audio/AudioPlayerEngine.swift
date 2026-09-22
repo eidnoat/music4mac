@@ -415,27 +415,33 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     }
     
     @objc private func playerItemDidReachEnd() {
-        if !self.scrobbledCurrentSong {
-            self.scrobbledCurrentSong = true
-            if let song = self.currentSong {
-                StorageManager.shared.incrementPlayCount(songId: song.id)
-                if song.source == .navidrome, let remoteId = song.remoteId {
-                    Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: true) }
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if !self.scrobbledCurrentSong {
+                self.scrobbledCurrentSong = true
+                if let song = self.currentSong {
+                    StorageManager.shared.incrementPlayCount(songId: song.id)
+                    if song.source == .navidrome, let remoteId = song.remoteId {
+                        Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: true) }
+                    }
                 }
             }
-        }
-        
-        if playQueue.playMode == .repeatOne {
-            seek(to: 0)
-            play()
-        } else {
-            skipToNext()
+            
+            if self.playQueue.playMode == .repeatOne {
+                self.seek(to: 0)
+                self.play()
+            } else {
+                self.skipToNext()
+            }
         }
     }
     
     @objc private func playerItemDidStall() {
-        if status == .playing {
-            player.play()
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if self.status == .playing {
+                self.player.play()
+            }
         }
     }
     

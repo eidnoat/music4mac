@@ -66,4 +66,31 @@ final class StorageManagerTests: XCTestCase {
         // Restore
         storage.history = originalHistory
     }
+    
+    func testRemoveSongsUpdatesDerivedCollections() {
+        let storage = StorageManager.shared
+        let originalSongs = storage.songs
+        
+        let song1 = Song(id: "remove_1", title: "Song 1", artist: "Artist 1", album: "Album 1", localPath: "/tmp/music/1.mp3")
+        let song2 = Song(id: "remove_2", title: "Song 2", artist: "Artist 2", album: "Album 2", localPath: "/other/music/2.mp3")
+        
+        storage.songs = [song1, song2]
+        storage.updateDerivedCollections()
+        XCTAssertEqual(storage.songs.count, 2)
+        XCTAssertEqual(storage.albums.count, 2)
+        XCTAssertEqual(storage.artists.count, 2)
+        
+        storage.removeSongs { $0.localPath?.hasPrefix("/tmp/music") == true }
+        
+        XCTAssertEqual(storage.songs.count, 1)
+        XCTAssertEqual(storage.songs.first?.id, "remove_2")
+        XCTAssertEqual(storage.albums.count, 1)
+        XCTAssertEqual(storage.albums.first?.title, "Album 2")
+        XCTAssertEqual(storage.artists.count, 1)
+        XCTAssertEqual(storage.artists.first?.name, "Artist 2")
+        
+        // Restore
+        storage.songs = originalSongs
+        storage.updateDerivedCollections()
+    }
 }
