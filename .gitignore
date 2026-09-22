@@ -1,0 +1,28 @@
+# macOS & Xcode
+.DS_Store
+*.swp
+*~
+*.xcuserstate
+project.xcworkspace
+xcuserdata/
+DerivedData/
+
+# Swift Package Manager & Build Artifacts
+.build/
+.buildlog/
+.swiftpm/
+Package.resolved
+
+# App Packaging Output
+*.app
+*.dmg
+*.zip
+dist/
+dmg_staging/
+
+# IDE & Editors
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
