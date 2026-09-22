@@ -141,8 +141,8 @@ public struct SongListView: View {
     private func updateDisplayedSongs(reSort: Bool = true) {
         let query = searchText.trimmingCharacters(in: .whitespaces)
         
-        // In-place metadata update when song list count is unchanged and not re-sorting
-        if !reSort && query.isEmpty && displayedSongs.count == songs.count {
+        // In-place metadata update when not re-sorting (e.g. playback lastPlayed/playCount updates)
+        if !reSort {
             let dict = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
             var updated = displayedSongs
             for i in 0..<updated.count {
