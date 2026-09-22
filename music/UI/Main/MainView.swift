@@ -110,7 +110,7 @@ public struct MainView: View {
             if isShown { showQueue = false }
         }
         .onChange(of: showQueue) { _, isShown in
-            if isShown { showQueue = false }
+            if isShown { showLyrics = false }
         }
         .task {
             // Auto-refresh Navidrome tracks if configured and any tracks are missing dateAdded
