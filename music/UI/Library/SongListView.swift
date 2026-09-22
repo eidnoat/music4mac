@@ -68,7 +68,7 @@ public struct SongListView: View {
         return decodeSortOrder(savedList)
     }
     
-    @State private var searchText = ""
+    @ObservedObject private var nav = NavigationCoordinator.shared
     @State private var sortOrder: [KeyPathComparator<Song>]
     @State private var selectedSongId: Song.ID?
     @State private var columnCustomization: TableColumnCustomization<Song> = {
@@ -115,11 +115,17 @@ public struct SongListView: View {
         }
         self._sortOrder = State(initialValue: defaultSort)
         
+        let query = NavigationCoordinator.shared.searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        let base: [Song] = query.isEmpty ? songs : songs.filter {
+            $0.title.localizedCaseInsensitiveContains(query) ||
+            $0.artist.localizedCaseInsensitiveContains(query) ||
+            $0.album.localizedCaseInsensitiveContains(query)
+        }
         let initialList: [Song]
         if allowSorting && !defaultSort.isEmpty {
-            initialList = songs.sorted(using: defaultSort)
+            initialList = base.sorted(using: defaultSort)
         } else {
-            initialList = songs
+            initialList = base
         }
         self._displayedSongs = State(initialValue: initialList)
         
@@ -139,7 +145,7 @@ public struct SongListView: View {
     }
     
     private func updateDisplayedSongs(reSort: Bool = true) {
-        let query = searchText.trimmingCharacters(in: .whitespaces)
+        let query = nav.searchText.trimmingCharacters(in: .whitespaces)
         
         // In-place metadata update when not re-sorting (e.g. playback lastPlayed/playCount updates)
         if !reSort {
@@ -201,13 +207,12 @@ public struct SongListView: View {
                 nonSortableTable
             }
         }
-        .searchable(text: $searchText, placement: .toolbar, prompt: "Search songs, artists, or albums")
         .onChange(of: columnCustomization) { _, newValue in
             if let data = try? JSONEncoder().encode(newValue) {
                 UserDefaults.standard.set(data, forKey: Self.columnStorageKey)
             }
         }
-        .onChange(of: searchText) { _, _ in
+        .onChange(of: nav.searchText) { _, _ in
             updateDisplayedSongs(reSort: true)
         }
         .onChange(of: songs) { oldSongs, newSongs in

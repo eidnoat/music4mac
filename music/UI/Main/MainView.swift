@@ -101,11 +101,19 @@ public struct MainView: View {
                     Spacer()
                 }
             }
+            .searchable(text: $nav.searchText, placement: .toolbar, prompt: "Search songs, artists, or albums")
         }
         .navigationTitle("music")
         .tint(Color.appleMusicRed)
         .accentColor(Color.appleMusicRed)
         .preferredColorScheme(themeManager.effectiveColorScheme)
+        .onChange(of: nav.searchText) { _, newQuery in
+            if !newQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+                if nav.selectedSidebarItem == .settings || nav.selectedSidebarItem == .navidrome {
+                    nav.selectedSidebarItem = .songs
+                }
+            }
+        }
         .onChange(of: showLyrics) { _, isShown in
             if isShown { showQueue = false }
         }

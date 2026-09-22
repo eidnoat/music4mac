@@ -9,10 +9,20 @@ public struct ArtistListView: View {
         self.artists = artists
     }
     
+    private var displayedArtists: [Artist] {
+        let query = nav.searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        if query.isEmpty {
+            return storage.artists
+        }
+        return storage.artists.filter {
+            $0.name.localizedCaseInsensitiveContains(query)
+        }
+    }
+    
     public var body: some View {
         NavigationSplitView {
             ScrollViewReader { proxy in
-                List(storage.artists, selection: $nav.selectedArtist) { artist in
+                List(displayedArtists, selection: $nav.selectedArtist) { artist in
                     NavigationLink(value: artist) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(artist.name)

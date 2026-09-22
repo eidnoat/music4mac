@@ -8,6 +8,7 @@ public final class NavigationCoordinator: ObservableObject {
     @Published public var selectedSidebarItem: NavigationItem? = .songs
     @Published public var selectedAlbum: Album? = nil
     @Published public var selectedArtist: Artist? = nil
+    @Published public var searchText: String = ""
     
     private init() {}
     

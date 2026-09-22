@@ -13,6 +13,17 @@ public struct AlbumGridView: View {
         self.albums = albums
     }
     
+    private var displayedAlbums: [Album] {
+        let query = nav.searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        if query.isEmpty {
+            return storage.albums
+        }
+        return storage.albums.filter {
+            $0.title.localizedCaseInsensitiveContains(query) ||
+            $0.artist.localizedCaseInsensitiveContains(query)
+        }
+    }
+    
     public var body: some View {
         Group {
             if let selected = nav.selectedAlbum {
@@ -23,7 +34,7 @@ public struct AlbumGridView: View {
             } else {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 20) {
-                        ForEach(storage.albums) { album in
+                        ForEach(displayedAlbums) { album in
                             AlbumCard(album: album)
                                 .onTapGesture {
                                     nav.selectedAlbum = album
