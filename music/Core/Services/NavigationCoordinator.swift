@@ -12,6 +12,15 @@ public final class NavigationCoordinator: ObservableObject {
     
     private init() {}
     
+    public func showSettings() {
+        for window in NSApplication.shared.windows where !(window is NSPanel) {
+            window.makeKeyAndOrderFront(nil)
+            break
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        self.selectedSidebarItem = .settings
+    }
+    
     public func navigateToArtist(named artistName: String) {
         let trimmed = artistName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }

@@ -21,6 +21,12 @@ public struct MusicApp: App {
         .windowToolbarStyle(.unified(showsTitle: false))
         .defaultSize(width: 1080, height: 700)
         .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings...") {
+                    NavigationCoordinator.shared.showSettings()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
             PlaybackCommands()
         }
     }
