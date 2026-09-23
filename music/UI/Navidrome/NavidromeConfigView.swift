@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct NavidromeConfigView: View {
+public struct NavidromeServerSection: View {
     @ObservedObject var client = NavidromeClient.shared
     @ObservedObject var storage = StorageManager.shared
     
@@ -16,118 +16,102 @@ public struct NavidromeConfigView: View {
     public init() {}
     
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Header
-                HStack(spacing: 12) {
-                    Image(systemName: "server.rack")
-                        .font(.system(size: 28))
-                        .foregroundColor(.accentColor)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Navidrome (Subsonic) Server Settings")
-                            .font(.title2.bold())
-                        Text("Connect to your self-hosted Navidrome / Subsonic server")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Text("Navidrome Server")
+                    .font(.title3.bold())
+                
+                Circle()
+                    .fill(client.isConnected ? Color.green : Color.gray.opacity(0.5))
+                    .frame(width: 8, height: 8)
+                    .help(client.isConnected ? "Server connected" : "Server not connected")
+            }
+            
+            Text("Connect to your self-hosted Navidrome or Subsonic server to stream and sync your music library.")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+            
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Server URL")
+                        .font(.system(size: 12, weight: .medium))
+                    TextField("e.g. https://music.example.com", text: $serverUrl)
+                        .textFieldStyle(.roundedBorder)
                 }
                 
-                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Username")
+                        .font(.system(size: 12, weight: .medium))
+                    TextField("Username", text: $username)
+                        .textFieldStyle(.roundedBorder)
+                }
                 
-                // Form
-                VStack(alignment: .leading, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Server URL")
-                            .font(.system(size: 13, weight: .medium))
-                        TextField("e.g. https://music.example.com", text: $serverUrl)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Username")
-                            .font(.system(size: 13, weight: .medium))
-                        TextField("Username", text: $username)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Password")
-                            .font(.system(size: 13, weight: .medium))
-                        SecureField("Password", text: $password)
-                            .textFieldStyle(.roundedBorder)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Password")
+                        .font(.system(size: 12, weight: .medium))
+                    SecureField("Password", text: $password)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+            .frame(maxWidth: 380)
+            
+            HStack(spacing: 12) {
+                Button {
+                    testConnection()
+                } label: {
+                    if isTesting {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text("Save & Test Connection")
                     }
                 }
-                .frame(maxWidth: 480)
+                .buttonStyle(.borderedProminent)
+                .disabled(serverUrl.isEmpty || username.isEmpty)
                 
-                // Buttons
-                HStack(spacing: 12) {
+                if client.isConnected {
                     Button {
-                        testConnection()
+                        syncLibrary()
                     } label: {
-                        if isTesting {
+                        if isSyncing {
                             ProgressView()
                                 .controlSize(.small)
                         } else {
-                            Text("Save & Test Connection")
+                            Label("Sync All Tracks", systemImage: "arrow.triangle.2.circlepath")
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(serverUrl.isEmpty || username.isEmpty)
-                    
-                    if client.isConnected {
-                        Button {
-                            syncLibrary()
-                        } label: {
-                            if isSyncing {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Label("Sync All Tracks", systemImage: "arrow.triangle.2.circlepath")
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(isSyncing)
-                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isSyncing)
                 }
-                
-                if let result = testResult {
-                    HStack(spacing: 8) {
-                        Image(systemName: client.isConnected ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .foregroundColor(client.isConnected ? .green : .red)
-                        Text(result)
-                            .font(.system(size: 12))
-                    }
-                    .padding(10)
-                    .background(Color.secondary.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
-                
-                if !syncProgress.isEmpty {
-                    Text(syncProgress)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
-                
-                // Remote Stats
-                if client.isConnected {
-                    Divider()
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Server Status")
-                            .font(.headline)
-                        
-                        let remoteCount = storage.songs.count
-                        HStack(spacing: 24) {
-                            StatusItem(label: "Synced Tracks", value: "\(remoteCount)")
-                            StatusItem(label: "Protocol", value: "Subsonic 1.16.1")
-                            StatusItem(label: "Auth", value: "Verified (Token+Salt)")
-                        }
-                    }
-                }
-                
-                Spacer()
             }
-            .padding(32)
+            .padding(.top, 2)
+            
+            if let result = testResult {
+                HStack(spacing: 8) {
+                    Image(systemName: client.isConnected ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundColor(client.isConnected ? .green : .red)
+                    Text(result)
+                        .font(.system(size: 12))
+                }
+                .padding(8)
+                .background(Color.secondary.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            
+            if !syncProgress.isEmpty {
+                Text(syncProgress)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            
+            if client.isConnected {
+                HStack(spacing: 24) {
+                    StatusItem(label: "Status", value: "Connected")
+                    StatusItem(label: "Protocol", value: "Subsonic 1.16.1")
+                    StatusItem(label: "Auth", value: "Verified (Token+Salt)")
+                }
+                .padding(.top, 4)
+            }
         }
         .onAppear {
             serverUrl = client.config.serverUrl
@@ -179,6 +163,17 @@ public struct NavidromeConfigView: View {
                     self.syncProgress = "Sync failed: \(error.localizedDescription)"
                 }
             }
+        }
+    }
+}
+
+public struct NavidromeConfigView: View {
+    public init() {}
+    
+    public var body: some View {
+        ScrollView {
+            NavidromeServerSection()
+                .padding(32)
         }
     }
 }

@@ -4,13 +4,11 @@ public enum NavigationItem: Hashable {
     case songs
     case albums
     case artists
-    case navidrome
     case settings
 }
 
 public struct SidebarView: View {
     @Binding var selection: NavigationItem?
-    @ObservedObject var navidrome = NavidromeClient.shared
     
     public init(selection: Binding<NavigationItem?>) {
         self._selection = selection
@@ -29,18 +27,6 @@ public struct SidebarView: View {
                 
                 NavigationLink(value: NavigationItem.artists) {
                     Label("Artists", systemImage: "person.2")
-                }
-            }
-            
-            Section("Remote") {
-                NavigationLink(value: NavigationItem.navidrome) {
-                    HStack {
-                        Label("Navidrome", systemImage: "server.rack")
-                        Spacer()
-                        Circle()
-                            .fill(navidrome.isConnected ? Color.green : Color.gray.opacity(0.5))
-                            .frame(width: 7, height: 7)
-                    }
                 }
             }
             

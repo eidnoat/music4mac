@@ -56,6 +56,11 @@ public struct SettingsView: View {
                 
                 Divider()
                 
+                // Section: Navidrome Server
+                NavidromeServerSection()
+                
+                Divider()
+                
                 // Section: Audio Cache
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Audio Cache")

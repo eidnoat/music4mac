@@ -66,8 +66,6 @@ public struct MainView: View {
                     case .artists:
                         ArtistListView(artists: storage.artists)
                             .id("artists")
-                    case .navidrome:
-                        NavidromeConfigView()
                     case .settings:
                         SettingsView()
                     }
@@ -109,7 +107,7 @@ public struct MainView: View {
         .preferredColorScheme(themeManager.effectiveColorScheme)
         .onChange(of: nav.searchText) { _, newQuery in
             if !newQuery.trimmingCharacters(in: .whitespaces).isEmpty {
-                if nav.selectedSidebarItem == .settings || nav.selectedSidebarItem == .navidrome {
+                if nav.selectedSidebarItem == .settings {
                     nav.selectedSidebarItem = .songs
                 }
             }
@@ -136,7 +134,7 @@ public struct MainView: View {
     private func refreshServerData() {
         guard !isRefreshing else { return }
         guard NavidromeClient.shared.hasValidCredentials else {
-            nav.selectedSidebarItem = .navidrome
+            nav.selectedSidebarItem = .settings
             return
         }
         
