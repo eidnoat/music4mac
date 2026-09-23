@@ -20,7 +20,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate.shared = self
         
         // Constrain global URLCache to prevent unbounded memory growth from remote artwork
-        let memoryCapacity = 25 * 1024 * 1024 // 25 MB RAM
+        let memoryCapacity = 10 * 1024 * 1024 // 10 MB RAM
         let diskCapacity = 100 * 1024 * 1024  // 100 MB Disk
         URLCache.shared = URLCache(
             memoryCapacity: memoryCapacity,

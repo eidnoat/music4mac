@@ -203,6 +203,8 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
+        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
+        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemPlaybackStalled, object: nil)
         
         player.pause()
         player.replaceCurrentItem(with: nil)
@@ -218,6 +220,8 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
+        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
+        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemPlaybackStalled, object: nil)
         
         player.pause()
         player.replaceCurrentItem(with: nil)
@@ -377,7 +381,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         let interval = CMTime(seconds: 0.25, preferredTimescale: 600)
         timeObserverToken = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
             guard let self = self else { return }
-            guard self.status == .playing || self.status == .paused else { return }
+            guard self.status == .playing else { return }
             guard !self.isSeeking else { return }
             let seconds = CMTimeGetSeconds(time)
             if !seconds.isNaN && seconds >= 0 {

@@ -24,6 +24,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30.0
         config.timeoutIntervalForResource = 600.0
+        config.urlCache = nil // Avoid polluting global URLCache with large media/artwork downloads
         return URLSession(configuration: config)
     }()
     
@@ -462,12 +463,14 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
             scheduleSaveIndex(snapshot)
         }
         
+        let coverUrl = cacheDirectory.appendingPathComponent("\(safeId)_cover.jpg")
+        LocalCoverCache.shared.removeImage(for: coverUrl)
+        
         ioQueue.async { [cacheDirectory] in
             if let track = track {
                 let fileUrl = cacheDirectory.appendingPathComponent(track.fileName)
                 try? FileManager.default.removeItem(at: fileUrl)
             }
-            let coverUrl = cacheDirectory.appendingPathComponent("\(safeId)_cover.jpg")
             let lyricsUrl = cacheDirectory.appendingPathComponent("\(safeId).lrc")
             try? FileManager.default.removeItem(at: coverUrl)
             try? FileManager.default.removeItem(at: lyricsUrl)
@@ -486,6 +489,8 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     }
     
     public func clearAllCache() {
+        LocalCoverCache.shared.clear()
+        
         lock.lock()
         let tasks = Array(activeDownloadTasks.values)
         activeDownloadTasks.removeAll()

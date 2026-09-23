@@ -32,6 +32,7 @@ public final class NavidromeClient: ObservableObject {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 15
         configuration.timeoutIntervalForResource = 60
+        configuration.urlCache = nil // API JSON queries have unique tokens and should not use URLCache
         self.session = URLSession(configuration: configuration)
         
         let savedData = UserDefaults.standard.data(forKey: configKey) ?? UserDefaults.standard.data(forKey: "sylvakru.navidrome.config")

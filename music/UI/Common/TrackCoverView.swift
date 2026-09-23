@@ -1,13 +1,17 @@
 import SwiftUI
 import AppKit
+import ImageIO
 
 public final class LocalCoverCache: @unchecked Sendable {
     public static let shared = LocalCoverCache()
     private let cache = NSCache<NSURL, NSImage>()
+    private let maxThumbnailPixelSize: CGFloat = 320
     
     public init() {
-        cache.countLimit = 500
-        cache.totalCostLimit = 100 * 1024 * 1024 // 100MB
+        // Thumbnail size is max 320x320 px (~400KB decoded per image).
+        // Restrict to 60 items and 16MB maximum memory usage to avoid memory growth over time.
+        cache.countLimit = 60
+        cache.totalCostLimit = 16 * 1024 * 1024
     }
     
     public func image(for url: URL) -> NSImage? {
@@ -15,10 +19,36 @@ public final class LocalCoverCache: @unchecked Sendable {
         if let cached = cache.object(forKey: nsUrl) {
             return cached
         }
+        
+        // Use ImageIO to downsample at decode time without loading the full-resolution bitmap into RAM
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else {
+            return nil
+        }
+        
+        let downsampleOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxThumbnailPixelSize
+        ]
+        
+        if let cgThumb = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions as CFDictionary) {
+            let img = NSImage(cgImage: cgThumb, size: NSSize(width: cgThumb.width, height: cgThumb.height))
+            let cost = cgThumb.bytesPerRow * cgThumb.height
+            cache.setObject(img, forKey: nsUrl, cost: cost)
+            return img
+        }
+        
+        // Fallback for formats not supported by thumbnail generator
         guard let img = NSImage(contentsOf: url) else { return nil }
         let cost = Int(img.size.width * img.size.height * 4)
         cache.setObject(img, forKey: nsUrl, cost: cost)
         return img
+    }
+    
+    public func removeImage(for url: URL) {
+        cache.removeObject(forKey: url as NSURL)
     }
     
     public func clear() {
