@@ -397,8 +397,9 @@ public struct SongListView: View {
     
     private func setSortAscending(_ ascending: Bool) {
         let order: SortOrder = ascending ? .forward : .reverse
-        if let current = sortOrder.first {
-            self.sortOrder = [KeyPathComparator(current.keyPath, order: order)]
+        if var current = sortOrder.first {
+            current.order = order
+            self.sortOrder = [current]
         } else {
             self.sortOrder = [KeyPathComparator(\Song.title, order: order)]
         }
