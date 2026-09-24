@@ -2,30 +2,114 @@ import SwiftUI
 import AppKit
 import ImageIO
 
-public final class LocalCoverCache: @unchecked Sendable {
-    public static let shared = LocalCoverCache()
+public typealias LocalCoverCache = CoverImageCache
+
+public final class CoverImageCache: @unchecked Sendable {
+    public static let shared = CoverImageCache()
     private let cache = NSCache<NSURL, NSImage>()
     private let maxThumbnailPixelSize: CGFloat = 320
+    private let lock = NSLock()
+    private var inFlightTasks: [URL: Task<NSImage?, Never>] = [:]
+    
+    private let session: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 15.0
+        config.timeoutIntervalForResource = 30.0
+        config.urlCache = nil
+        return URLSession(configuration: config)
+    }()
     
     public init() {
         // Thumbnail size is max 320x320 px (~400KB decoded per image).
-        // Restrict to 60 items and 16MB maximum memory usage to avoid memory growth over time.
-        cache.countLimit = 60
-        cache.totalCostLimit = 16 * 1024 * 1024
+        // Restrict to 80 items and 20MB maximum memory usage to avoid memory growth over time.
+        cache.countLimit = 80
+        cache.totalCostLimit = 20 * 1024 * 1024
     }
     
-    public func image(for url: URL) -> NSImage? {
+    /// Synchronously returns cached image if already decoded in memory, or decodes local file URLs with downsampling.
+    public func cachedImage(for url: URL) -> NSImage? {
         let nsUrl = url as NSURL
         if let cached = cache.object(forKey: nsUrl) {
             return cached
         }
         
-        // Use ImageIO to downsample at decode time without loading the full-resolution bitmap into RAM
-        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else {
-            return nil
+        guard url.isFileURL else { return nil }
+        return downsample(fileUrl: url)
+    }
+    
+    /// Backward-compatible synchronous lookup for local URLs
+    public func image(for url: URL) -> NSImage? {
+        return cachedImage(for: url)
+    }
+    
+    /// Asynchronously loads and downsamples image (supports local file URLs and remote HTTP/HTTPS URLs).
+    public func loadImage(for url: URL) async -> NSImage? {
+        let nsUrl = url as NSURL
+        if let cached = cache.object(forKey: nsUrl) {
+            return cached
         }
         
+        if url.isFileURL {
+            return downsample(fileUrl: url)
+        }
+        
+        // Coalesce duplicate in-flight requests for the same URL
+        let existingTask: Task<NSImage?, Never>? = {
+            lock.lock()
+            defer { lock.unlock() }
+            return inFlightTasks[url]
+        }()
+        
+        if let existing = existingTask {
+            return await existing.value
+        }
+        
+        let newTask = Task<NSImage?, Never> { [session, weak self] in
+            guard let self = self else { return nil }
+            defer {
+                self.lock.lock()
+                self.inFlightTasks.removeValue(forKey: url)
+                self.lock.unlock()
+            }
+            
+            do {
+                let (data, response) = try await session.data(from: url)
+                if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                    return nil
+                }
+                guard !data.isEmpty else { return nil }
+                return self.downsample(data: data, for: url)
+            } catch {
+                return nil
+            }
+        }
+        
+        lock.lock()
+        inFlightTasks[url] = newTask
+        lock.unlock()
+        
+        return await newTask.value
+    }
+    
+    private func downsample(fileUrl: URL) -> NSImage? {
+        let nsUrl = fileUrl as NSURL
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(fileUrl as CFURL, sourceOptions) else {
+            return nil
+        }
+        return createThumbnail(from: source, key: nsUrl)
+    }
+    
+    private func downsample(data: Data, for url: URL) -> NSImage? {
+        let nsUrl = url as NSURL
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else {
+            return nil
+        }
+        return createThumbnail(from: source, key: nsUrl)
+    }
+    
+    private func createThumbnail(from source: CGImageSource, key: NSURL) -> NSImage? {
         let downsampleOptions: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceShouldCacheImmediately: true,
@@ -36,15 +120,10 @@ public final class LocalCoverCache: @unchecked Sendable {
         if let cgThumb = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions as CFDictionary) {
             let img = NSImage(cgImage: cgThumb, size: NSSize(width: cgThumb.width, height: cgThumb.height))
             let cost = cgThumb.bytesPerRow * cgThumb.height
-            cache.setObject(img, forKey: nsUrl, cost: cost)
+            cache.setObject(img, forKey: key, cost: cost)
             return img
         }
-        
-        // Fallback for formats not supported by thumbnail generator
-        guard let img = NSImage(contentsOf: url) else { return nil }
-        let cost = Int(img.size.width * img.size.height * 4)
-        cache.setObject(img, forKey: nsUrl, cost: cost)
-        return img
+        return nil
     }
     
     public func removeImage(for url: URL) {
@@ -53,6 +132,61 @@ public final class LocalCoverCache: @unchecked Sendable {
     
     public func clear() {
         cache.removeAllObjects()
+    }
+}
+
+public struct CoverImageView<Placeholder: View>: View {
+    public let url: URL?
+    public let contentMode: ContentMode
+    private let placeholder: () -> Placeholder
+    
+    @State private var loadedImage: NSImage?
+    
+    public init(
+        url: URL?,
+        contentMode: ContentMode = .fill,
+        @ViewBuilder placeholder: @escaping () -> Placeholder
+    ) {
+        self.url = url
+        self.contentMode = contentMode
+        self.placeholder = placeholder
+        if let url = url, let cached = CoverImageCache.shared.cachedImage(for: url) {
+            _loadedImage = State(initialValue: cached)
+        }
+    }
+    
+    public var body: some View {
+        Group {
+            if let image = loadedImage {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+            } else {
+                placeholder()
+            }
+        }
+        .task(id: url) {
+            guard let url = url else {
+                loadedImage = nil
+                return
+            }
+            if let cached = CoverImageCache.shared.cachedImage(for: url) {
+                loadedImage = cached
+                return
+            }
+            let img = await CoverImageCache.shared.loadImage(for: url)
+            if !Task.isCancelled {
+                loadedImage = img
+            }
+        }
+    }
+}
+
+extension CoverImageView where Placeholder == Color {
+    public init(url: URL?, contentMode: ContentMode = .fill) {
+        self.init(url: url, contentMode: contentMode) {
+            Color.secondary.opacity(0.1)
+        }
     }
 }
 
@@ -68,42 +202,12 @@ public struct TrackCoverView: View {
     }
     
     public var body: some View {
-        Group {
-            if let song = song {
-                coverContent(for: song)
-                    .id(song.id)
-            } else {
-                fallbackCover
-            }
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-    }
-    
-    @ViewBuilder
-    private func coverContent(for song: Song) -> some View {
-        if let coverUrl = song.effectiveCoverUrl {
-            if coverUrl.isFileURL, let localImg = LocalCoverCache.shared.image(for: coverUrl) {
-                Image(nsImage: localImg)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                AsyncImage(url: coverUrl, transaction: Transaction(animation: .easeInOut(duration: 0.2))) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .empty, .failure:
-                        fallbackCover
-                    @unknown default:
-                        fallbackCover
-                    }
-                }
-            }
-        } else {
+        CoverImageView(url: song?.effectiveCoverUrl) {
             fallbackCover
         }
+        .id(song?.id)
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
     
     private var fallbackCover: some View {

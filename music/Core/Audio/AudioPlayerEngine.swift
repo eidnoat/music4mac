@@ -124,9 +124,14 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
             return
         }
         
-        // Detach old item observers
+        // Detach old item observers and cleanly flush CoreMedia decoder pipeline
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemPlaybackStalled, object: nil)
+        
+        if let oldItem = self.player.currentItem {
+            oldItem.asset.cancelLoading()
+            self.player.replaceCurrentItem(with: nil)
+        }
         
         let playerItem = AVPlayerItem(url: url)
         

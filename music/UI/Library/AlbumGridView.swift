@@ -56,19 +56,7 @@ public struct AlbumCard: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack(alignment: .bottomTrailing) {
-                if let url = album.effectiveCoverUrl {
-                    if url.isFileURL, let localImg = LocalCoverCache.shared.image(for: url) {
-                        Image(nsImage: localImg)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } else {
-                        AsyncImage(url: url) { image in
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Color.secondary.opacity(0.1)
-                        }
-                    }
-                } else {
+                CoverImageView(url: album.effectiveCoverUrl) {
                     ZStack {
                         Color.secondary.opacity(0.1)
                         Image(systemName: "square.stack")
@@ -132,20 +120,8 @@ public struct AlbumDetailView: View {
                 }
                 .buttonStyle(.plain)
                 
-                Group {
-                    if let url = album.effectiveCoverUrl {
-                        if url.isFileURL, let localImg = LocalCoverCache.shared.image(for: url) {
-                            Image(nsImage: localImg)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } else {
-                            AsyncImage(url: url) { img in
-                                img.resizable().aspectRatio(contentMode: .fill)
-                            } placeholder: { Color.secondary.opacity(0.1) }
-                        }
-                    } else {
-                        Color.secondary.opacity(0.1)
-                    }
+                CoverImageView(url: album.effectiveCoverUrl) {
+                    Color.secondary.opacity(0.1)
                 }
                 .frame(width: 100, height: 100)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
