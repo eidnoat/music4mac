@@ -10,8 +10,21 @@ public struct AppRootView: View {
     #elseif os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
+    private var isPadLayout: Bool {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return true
+        }
+        if UIDevice.current.model.localizedCaseInsensitiveContains("iPad") {
+            return true
+        }
+        if min(UIScreen.main.bounds.width, UIScreen.main.bounds.height) >= 600 {
+            return true
+        }
+        return horizontalSizeClass == .regular
+    }
+    
     public var body: some View {
-        if UIDevice.current.userInterfaceIdiom == .pad || horizontalSizeClass == .regular {
+        if isPadLayout {
             iPadMainView()
         } else {
             iPhoneMainView()

@@ -36,6 +36,8 @@ if [ -d "music/Resources/Assets.xcassets" ]; then
     actool music/Resources/Assets.xcassets \
       --compile "$APP_NAME" \
       --platform iphoneos \
+      --target-device iphone \
+      --target-device ipad \
       --minimum-deployment-target 17.0 \
       --app-icon AppIcon \
       --output-partial-info-plist /tmp/assetcatalog_generated_info.plist || true
@@ -43,6 +45,13 @@ if [ -d "music/Resources/Assets.xcassets" ]; then
     if [ -f "/tmp/assetcatalog_generated_info.plist" ]; then
         /usr/libexec/PlistBuddy -c "Merge /tmp/assetcatalog_generated_info.plist" "$APP_NAME/Info.plist" 2>/dev/null || true
     fi
+    
+    # Enforce UIDeviceFamily [1, 2] and fullscreen false for native iPadOS support
+    /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" "$APP_NAME/Info.plist" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" "$APP_NAME/Info.plist" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" "$APP_NAME/Info.plist" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:1 integer 2" "$APP_NAME/Info.plist" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen false" "$APP_NAME/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool false" "$APP_NAME/Info.plist" 2>/dev/null || true
     
     # Also copy standard direct icon files into bundle root for maximum compatibility
     ICON_DIR="music/Resources/Assets.xcassets/AppIcon.appiconset"
