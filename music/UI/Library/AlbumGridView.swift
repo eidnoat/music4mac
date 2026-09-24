@@ -160,9 +160,10 @@ public struct AlbumDetailView: View {
         .safeAreaInset(edge: .bottom) {
             Color.clear.frame(height: 70) // Prevent content from being hidden by floating mini player
         }
-        #endif
         .navigationTitle(album.title)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
     
     // MARK: - Album Header
