@@ -10,6 +10,11 @@ import UIKit
 public final class NowPlayingManager: @unchecked Sendable {
     public static let shared = NowPlayingManager()
     
+    private let lock = NSLock()
+    private var currentSongId: String?
+    private var currentArtwork: MPMediaItemArtwork?
+    private var artworkTask: Task<Void, Never>?
+    
     private init() {
         setupRemoteCommands()
     }
@@ -68,6 +73,12 @@ public final class NowPlayingManager: @unchecked Sendable {
             }
             return .success
         }
+        
+        #if os(iOS)
+        DispatchQueue.main.async {
+            UIApplication.shared.beginReceivingRemoteControlEvents()
+        }
+        #endif
     }
     
     public func updateNowPlaying(
@@ -78,9 +89,46 @@ public final class NowPlayingManager: @unchecked Sendable {
     ) {
         let infoCenter = MPNowPlayingInfoCenter.default()
         guard let song = song else {
+            lock.lock()
+            currentSongId = nil
+            currentArtwork = nil
+            artworkTask?.cancel()
+            artworkTask = nil
+            lock.unlock()
+            
+            #if os(iOS)
+            infoCenter.playbackState = .stopped
+            #endif
             infoCenter.nowPlayingInfo = nil
             return
         }
+        
+        lock.lock()
+        if currentSongId != song.id {
+            currentSongId = song.id
+            currentArtwork = nil
+            artworkTask?.cancel()
+            artworkTask = nil
+        }
+        
+        if let image = artworkImage, image.size.width > 0, image.size.height > 0 {
+            currentArtwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+        } else if currentArtwork == nil, let coverUrl = song.effectiveCoverUrl {
+            if let cached = CoverImageCache.shared.cachedImage(for: coverUrl),
+               cached.size.width > 0, cached.size.height > 0 {
+                currentArtwork = MPMediaItemArtwork(boundsSize: cached.size) { _ in cached }
+            } else {
+                let targetSongId = song.id
+                artworkTask = Task { [weak self] in
+                    guard let image = await CoverImageCache.shared.loadImage(for: coverUrl) else { return }
+                    guard !Task.isCancelled else { return }
+                    guard image.size.width > 0, image.size.height > 0 else { return }
+                    self?.setLoadedArtwork(image, for: targetSongId)
+                }
+            }
+        }
+        let artworkToSet = currentArtwork
+        lock.unlock()
         
         var nowPlayingInfo: [String: Any] = [
             MPMediaItemPropertyTitle: song.title,
@@ -91,11 +139,40 @@ public final class NowPlayingManager: @unchecked Sendable {
             MPNowPlayingInfoPropertyPlaybackRate: playbackRate
         ]
         
-        if let image = artworkImage {
-            let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+        if let artwork = artworkToSet {
             nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
         }
         
+        #if os(iOS)
+        infoCenter.playbackState = (playbackRate > 0) ? .playing : .paused
+        #endif
         infoCenter.nowPlayingInfo = nowPlayingInfo
+    }
+    
+    private func setLoadedArtwork(_ image: PlatformImage, for songId: String) {
+        let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+        
+        lock.lock()
+        guard currentSongId == songId else {
+            lock.unlock()
+            return
+        }
+        currentArtwork = artwork
+        lock.unlock()
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.lock.lock()
+            guard self.currentSongId == songId else {
+                self.lock.unlock()
+                return
+            }
+            self.lock.unlock()
+            
+            let infoCenter = MPNowPlayingInfoCenter.default()
+            var currentInfo = infoCenter.nowPlayingInfo ?? [:]
+            currentInfo[MPMediaItemPropertyArtwork] = artwork
+            infoCenter.nowPlayingInfo = currentInfo
+        }
     }
 }

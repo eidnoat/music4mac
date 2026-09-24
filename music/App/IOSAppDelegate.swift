@@ -14,6 +14,7 @@ public final class IOSAppDelegate: NSObject, UIApplicationDelegate {
         } catch {
             print("[Music] Failed to activate AVAudioSession: \(error)")
         }
+        application.beginReceivingRemoteControlEvents()
         return true
     }
 }

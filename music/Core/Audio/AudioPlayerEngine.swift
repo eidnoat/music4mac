@@ -165,6 +165,11 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
             )
         } else {
             self.status = .loading
+            NowPlayingManager.shared.updateNowPlaying(
+                song: song,
+                playbackRate: 0.0,
+                currentTime: 0
+            )
             
             itemStatusObservation = playerItem.observe(\.status, options: [.new, .initial]) { [weak self] item, _ in
                 DispatchQueue.main.async {

@@ -42,7 +42,13 @@ public struct Song: Identifiable, Hashable, Codable, Sendable {
         if let cached = SongCacheManager.shared.getCachedCoverUrl(forId: id) {
             return cached
         }
-        return coverUrl
+        if let coverUrl = coverUrl {
+            return coverUrl
+        }
+        if let coverId = coverId ?? remoteId {
+            return NavidromeClient.shared.getCoverArtUrl(id: coverId)
+        }
+        return nil
     }
     
     public init(
