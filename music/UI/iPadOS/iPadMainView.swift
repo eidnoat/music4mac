@@ -159,9 +159,9 @@ public struct iPadPlayerBar: View {
                     Button {
                         queue.cycleRepeatMode()
                     } label: {
-                        Image(systemName: queue.repeatMode == .repeatOne ? "repeat.1" : "repeat")
+                        Image(systemName: queue.playMode == .repeatOne ? "repeat.1" : "repeat")
                             .font(.system(size: 14))
-                            .foregroundColor(queue.repeatMode != .off ? .appleMusicRed : .secondary)
+                            .foregroundColor(queue.playMode != .sequence ? .appleMusicRed : .secondary)
                     }
                     .buttonStyle(.plain)
                 }

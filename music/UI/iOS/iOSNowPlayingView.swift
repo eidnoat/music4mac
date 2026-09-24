@@ -232,9 +232,9 @@ public struct iOSNowPlayingView: View {
             Button {
                 queue.cycleRepeatMode()
             } label: {
-                Image(systemName: queue.repeatMode == .repeatOne ? "repeat.1" : "repeat")
+                Image(systemName: queue.playMode == .repeatOne ? "repeat.1" : "repeat")
                     .font(.system(size: 18))
-                    .foregroundColor(queue.repeatMode != .off ? .appleMusicRed : .secondary)
+                    .foregroundColor(queue.playMode != .sequence ? .appleMusicRed : .secondary)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.plain)
@@ -302,10 +302,58 @@ public struct iOSNowPlayingView: View {
     }
 }
 
+// MARK: - Queue Row Component
+public struct iOSQueueRowView: View {
+    public let index: Int
+    public let song: Song
+    public let isCurrent: Bool
+    public let onSelect: () -> Void
+    
+    public init(index: Int, song: Song, isCurrent: Bool, onSelect: @escaping () -> Void) {
+        self.index = index
+        self.song = song
+        self.isCurrent = isCurrent
+        self.onSelect = onSelect
+    }
+    
+    public var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 12) {
+                if isCurrent {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .foregroundColor(.appleMusicRed)
+                        .font(.system(size: 13))
+                        .frame(width: 24, alignment: .trailing)
+                } else {
+                    Text("\(index + 1)")
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .frame(width: 24, alignment: .trailing)
+                }
+                
+                TrackCoverView(song: song, size: 38, cornerRadius: 6)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(song.title)
+                        .font(.system(size: 14, weight: isCurrent ? .semibold : .regular))
+                        .foregroundColor(isCurrent ? .appleMusicRed : .primary)
+                        .lineLimit(1)
+                    Text(song.artist)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Queue Sheet
 public struct iOSQueueSheet: View {
     @ObservedObject var queue = PlayQueueManager.shared
-    @ObservedObject var player = AudioPlayerEngine.shared
     @Environment(\.dismiss) private var dismiss
     
     public init() {}
@@ -318,39 +366,15 @@ public struct iOSQueueSheet: View {
                         .foregroundColor(.secondary)
                         .padding()
                 } else {
-                    ForEach(Array(queue.queue.enumerated()), id: \.element.id) { index, song in
-                        let isCurrent = index == queue.currentIndex
-                        HStack(spacing: 12) {
-                            if isCurrent {
-                                Image(systemName: "speaker.wave.2.fill")
-                                    .foregroundColor(.appleMusicRed)
-                                    .font(.system(size: 13))
-                            } else {
-                                Text("\(index + 1)")
-                                    .font(.system(size: 13, design: .monospaced))
-                                    .foregroundColor(.secondary)
-                                    .frame(width: 24, alignment: .trailing)
-                            }
-                            
-                            TrackCoverView(song: song, size: 38, cornerRadius: 6)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(song.title)
-                                    .font(.system(size: 14, weight: isCurrent ? .semibold : .regular))
-                                    .foregroundColor(isCurrent ? .appleMusicRed : .primary)
-                                    .lineLimit(1)
-                                Text(song.artist)
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                            }
-                            
-                            Spacer()
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            queue.playQueueItem(at: index)
-                        }
+                    ForEach(0..<queue.queue.count, id: \.self) { index in
+                        let song = queue.queue[index]
+                        let isCurrent = (index == queue.currentIndex)
+                        iOSQueueRowView(
+                            index: index,
+                            song: song,
+                            isCurrent: isCurrent,
+                            onSelect: { queue.playQueueItem(at: index) }
+                        )
                     }
                 }
             }

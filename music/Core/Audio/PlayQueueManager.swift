@@ -161,6 +161,31 @@ public final class PlayQueueManager: ObservableObject {
         self.playMode = PlayMode(rawValue: nextRaw) ?? .sequence
     }
     
+    public var isShuffleEnabled: Bool {
+        get { playMode == .shuffle }
+        set { playMode = newValue ? .shuffle : .sequence }
+    }
+    
+    public func toggleShuffle() {
+        playMode = (playMode == .shuffle) ? .sequence : .shuffle
+    }
+    
+    public func cycleRepeatMode() {
+        switch playMode {
+        case .sequence:
+            playMode = .repeatAll
+        case .repeatAll:
+            playMode = .repeatOne
+        case .repeatOne, .shuffle:
+            playMode = .sequence
+        }
+    }
+    
+    public func playQueueItem(at index: Int) {
+        guard index >= 0 && index < queue.count else { return }
+        self.currentIndex = index
+    }
+    
     private func handlePlayModeChange() {
         UserDefaults.standard.set(playMode.rawValue, forKey: modeStorageKey)
         guard let current = currentSong else { return }
