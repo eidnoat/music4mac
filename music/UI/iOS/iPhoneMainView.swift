@@ -198,19 +198,7 @@ public struct iPhoneMainView: View {
                 } label: {
                     HStack(spacing: 12) {
                         // 1. Stable Fixed Cover (44x44)
-                        ZStack {
-                            TrackCoverView(song: song, size: 44, cornerRadius: 6)
-                            
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color.black.opacity(0.35))
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.75)
-                            }
-                            .opacity((isCurrent && player.status == .loading) ? 1 : 0)
-                        }
-                        .frame(width: 44, height: 44)
+                        TrackCoverView(song: song, size: 44, cornerRadius: 6)
                         
                         // 2. Stable Title & Artist
                         VStack(alignment: .leading, spacing: 3) {

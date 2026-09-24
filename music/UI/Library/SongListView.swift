@@ -302,19 +302,7 @@ public struct SongListView: View {
                 } label: {
                     HStack(spacing: 14) {
                         // 1. Stable Fixed Cover (50x50)
-                        ZStack {
-                            TrackCoverView(song: song, size: 50, cornerRadius: 8)
-                            
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.black.opacity(0.35))
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                            }
-                            .opacity((isCurrent && AudioPlayerEngine.shared.status == .loading) ? 1 : 0)
-                        }
-                        .frame(width: 50, height: 50)
+                        TrackCoverView(song: song, size: 50, cornerRadius: 8)
                         
                         // 2. Stable Title & Artist
                         VStack(alignment: .leading, spacing: 4) {
