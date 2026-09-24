@@ -101,14 +101,9 @@ public struct iOSNowPlayingView: View {
             
             Spacer()
             
-            Button {
-                showQueue.toggle()
-            } label: {
-                Image(systemName: "list.bullet")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundColor(showQueue ? .appleMusicRed : .secondary)
-                    .frame(width: 44, height: 44)
-            }
+            // Balance placeholder matching dismiss button width
+            Color.clear
+                .frame(width: 44, height: 44)
         }
     }
     
