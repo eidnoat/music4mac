@@ -329,6 +329,11 @@ public struct SongListView: View {
                                     Image(systemName: "arrow.down.circle.fill")
                                         .font(.system(size: 12))
                                         .foregroundColor(.secondary)
+                                } else if cacheManager.downloadingIds.contains(song.id) {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
+                                        .scaleEffect(0.65)
+                                        .frame(width: 14, height: 14)
                                 }
                             }
                             
@@ -340,23 +345,24 @@ public struct SongListView: View {
                         
                         Spacer()
                         
-                        // 3. Stable Fixed Trailing Area (width 52)
+                        // 3. Stable Fixed Trailing Area (width 52) - Mutually Exclusive
                         ZStack(alignment: .trailing) {
-                            Text(song.formattedDuration)
-                                .font(.system(size: 13, design: .monospaced))
-                                .foregroundColor(.secondary)
-                                .opacity((isPlaying || isLoading) ? 0 : 1)
-                            
-                            if isPlaying {
-                                Image(systemName: "speaker.wave.2.fill")
-                                    .foregroundColor(.appleMusicRed)
-                                    .font(.system(size: 14))
-                            }
-                            
-                            if isLoading {
+                            if isCurrent && AudioPlayerEngine.shared.status == .loading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle())
                                     .scaleEffect(0.85)
+                            } else if isPlaying {
+                                Image(systemName: "speaker.wave.2.fill")
+                                    .foregroundColor(.appleMusicRed)
+                                    .font(.system(size: 14))
+                            } else if cacheManager.downloadingIds.contains(song.id) {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(0.85)
+                            } else {
+                                Text(song.formattedDuration)
+                                    .font(.system(size: 13, design: .monospaced))
+                                    .foregroundColor(.secondary)
                             }
                         }
                         .frame(width: 52, alignment: .trailing)
