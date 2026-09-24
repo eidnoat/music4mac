@@ -188,10 +188,9 @@ public struct iPhoneMainView: View {
     // MARK: - Tracks List
     private func tracksList(songs: [Song]) -> some View {
         List {
-            ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+            ForEach(songs) { song in
                 let isCurrent = player.currentSong?.id == song.id
                 let isCached = cacheManager.isSongCached(id: song.id)
-                let isBufferingOrCaching = (isCurrent && player.status == .loading) || cacheManager.downloadingIds.contains(song.id)
                 
                 Button {
                     player.playSong(song, in: songs)
@@ -215,12 +214,7 @@ public struct iPhoneMainView: View {
                                     .foregroundColor(isCurrent ? .appleMusicRed : .primary)
                                     .lineLimit(1)
                                 
-                                if isBufferingOrCaching {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle())
-                                        .scaleEffect(0.65)
-                                        .frame(width: 14, height: 14)
-                                } else if isCached {
+                                if isCached {
                                     Image(systemName: "arrow.down.circle.fill")
                                         .font(.system(size: 11))
                                         .foregroundColor(.secondary)
@@ -244,15 +238,27 @@ public struct iPhoneMainView: View {
                                 Image(systemName: "speaker.wave.2.fill")
                                     .foregroundColor(.appleMusicRed)
                                     .font(.system(size: 13))
+                            } else {
+                                Text(song.formattedDuration)
+                                    .font(.system(size: 13, design: .monospaced))
+                                    .foregroundColor(.secondary)
                             }
                         } else if cacheManager.downloadingIds.contains(song.id) {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle())
                                 .scaleEffect(0.85)
+                        } else {
+                            Text(song.formattedDuration)
+                                .font(.system(size: 13, design: .monospaced))
+                                .foregroundColor(.secondary)
                         }
                     }
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     if isCached {
                         Button(role: .destructive) {
