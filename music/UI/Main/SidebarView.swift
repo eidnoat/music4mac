@@ -1,13 +1,6 @@
 #if os(macOS)
 import SwiftUI
 
-public enum NavigationItem: Hashable {
-    case songs
-    case albums
-    case artists
-    case settings
-}
-
 public struct SidebarView: View {
     @Binding var selection: NavigationItem?
     

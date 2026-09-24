@@ -2,6 +2,13 @@ import Foundation
 import SwiftUI
 import Combine
 
+public enum NavigationItem: Hashable {
+    case songs
+    case albums
+    case artists
+    case settings
+}
+
 public final class NavigationCoordinator: ObservableObject {
     public static let shared = NavigationCoordinator()
     
@@ -13,11 +20,13 @@ public final class NavigationCoordinator: ObservableObject {
     private init() {}
     
     public func showSettings() {
+        #if os(macOS)
         for window in NSApplication.shared.windows where !(window is NSPanel) {
             window.makeKeyAndOrderFront(nil)
             break
         }
         NSApp.activate(ignoringOtherApps: true)
+        #endif
         self.selectedSidebarItem = .settings
     }
     

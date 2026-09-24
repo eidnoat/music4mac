@@ -371,9 +371,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
                 if let (coverData, _) = try? await downloadSession.data(from: coverUrl), !coverData.isEmpty {
                     let coverDest = cacheDirectory.appendingPathComponent("\(safeId)_cover.jpg")
                     try? coverData.write(to: coverDest, options: .atomic)
-                    self.lock.lock()
-                    self.cachedCoverSafeIds.insert(safeId)
-                    self.lock.unlock()
+                    self.addCachedCoverSafeId(safeId)
                 }
             }
             
@@ -391,6 +389,12 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         } catch {
             print("[SongCacheManager] Failed to cache song: \(song.title), error: \(error)")
         }
+    }
+    
+    private func addCachedCoverSafeId(_ safeId: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        cachedCoverSafeIds.insert(safeId)
     }
     
     // MARK: - Eviction & Removal
