@@ -191,22 +191,29 @@ public struct iPhoneMainView: View {
             ForEach(songs) { song in
                 let isCurrent = player.currentSong?.id == song.id
                 let isCached = cacheManager.isSongCached(id: song.id)
+                let isLoading = (isCurrent && player.status == .loading) || cacheManager.downloadingIds.contains(song.id)
+                let isPlaying = isCurrent && player.status == .playing
                 
                 Button {
                     player.playSong(song, in: songs)
                 } label: {
                     HStack(spacing: 12) {
+                        // 1. Stable Fixed Cover (44x44)
                         ZStack {
                             TrackCoverView(song: song, size: 44, cornerRadius: 6)
-                            if isCurrent && player.status == .loading {
+                            
+                            ZStack {
                                 RoundedRectangle(cornerRadius: 6)
                                     .fill(Color.black.opacity(0.35))
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                     .scaleEffect(0.75)
                             }
+                            .opacity((isCurrent && player.status == .loading) ? 1 : 0)
                         }
+                        .frame(width: 44, height: 44)
                         
+                        // 2. Stable Title & Artist
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(spacing: 4) {
                                 Text(song.title)
@@ -229,29 +236,26 @@ public struct iPhoneMainView: View {
                         
                         Spacer()
                         
-                        if isCurrent {
-                            if player.status == .loading || cacheManager.downloadingIds.contains(song.id) {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                                    .scaleEffect(0.85)
-                            } else if player.status == .playing {
-                                Image(systemName: "speaker.wave.2.fill")
-                                    .foregroundColor(.appleMusicRed)
-                                    .font(.system(size: 13))
-                            } else {
-                                Text(song.formattedDuration)
-                                    .font(.system(size: 13, design: .monospaced))
-                                    .foregroundColor(.secondary)
-                            }
-                        } else if cacheManager.downloadingIds.contains(song.id) {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle())
-                                .scaleEffect(0.85)
-                        } else {
+                        // 3. Stable Fixed Trailing Area (width 48)
+                        ZStack(alignment: .trailing) {
                             Text(song.formattedDuration)
                                 .font(.system(size: 13, design: .monospaced))
                                 .foregroundColor(.secondary)
+                                .opacity((isPlaying || isLoading) ? 0 : 1)
+                            
+                            if isPlaying {
+                                Image(systemName: "speaker.wave.2.fill")
+                                    .foregroundColor(.appleMusicRed)
+                                    .font(.system(size: 13))
+                            }
+                            
+                            if isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(0.85)
+                            }
                         }
+                        .frame(width: 48, alignment: .trailing)
                     }
                     .padding(.vertical, 4)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -259,6 +263,8 @@ public struct iPhoneMainView: View {
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .transaction { $0.animation = nil }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     if isCached {
                         Button(role: .destructive) {
