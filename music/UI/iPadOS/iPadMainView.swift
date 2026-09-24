@@ -24,6 +24,7 @@ public struct iPadMainView: View {
     @ObservedObject var player = AudioPlayerEngine.shared
     @ObservedObject var queue = PlayQueueManager.shared
     @ObservedObject var progress = AudioProgressTracker.shared
+    @ObservedObject var nav = NavigationCoordinator.shared
     
     @State private var selectedItem: iPadSidebarItem? = .tracks
     @State private var isShowingNowPlayingModal = false
@@ -59,6 +60,9 @@ public struct iPadMainView: View {
                     isLyricsActive: showSideBySideLyrics
                 )
             }
+            .navigationTitle(selectedItem?.rawValue ?? "Tracks")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $nav.searchText, prompt: "Search music")
         }
         .sheet(isPresented: $isShowingNowPlayingModal) {
             iPadNowPlayingSideBySideView()

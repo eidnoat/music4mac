@@ -90,6 +90,7 @@ public struct SongListView: View {
     private let player = AudioPlayerEngine.shared
     private let queue = PlayQueueManager.shared
     @ObservedObject private var storage = StorageManager.shared
+    @ObservedObject private var cacheManager = SongCacheManager.shared
     
     @State private var displayedSongs: [Song]
     @State private var songIndexMap: [String: Int] = [:]
@@ -203,11 +204,17 @@ public struct SongListView: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            #if os(macOS)
             } else if allowSorting {
                 sortableTable
             } else {
                 nonSortableTable
             }
+            #elseif os(iOS)
+            } else {
+                mobileSongList
+            }
+            #endif
         }
         .onChange(of: columnCustomization) { _, newValue in
             if let data = try? JSONEncoder().encode(newValue) {
@@ -280,6 +287,131 @@ public struct SongListView: View {
         } else {
             self.sortOrder = [KeyPathComparator(keyPath, order: .forward)]
         }
+    }
+    
+    @ViewBuilder
+    private var mobileSongList: some View {
+        List {
+            ForEach(displayedSongs) { song in
+                let isCurrent = currentPlayingSongId == song.id
+                let isCached = cacheManager.isSongCached(id: song.id)
+                let isBufferingOrCaching = (isCurrent && isAudioPlaying && AudioPlayerEngine.shared.status == .loading) || cacheManager.downloadingIds.contains(song.id)
+                
+                Button {
+                    player.playSong(song, in: displayedSongs)
+                } label: {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            TrackCoverView(song: song, size: 50, cornerRadius: 8)
+                            if isCurrent && AudioPlayerEngine.shared.status == .loading {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.black.opacity(0.35))
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 6) {
+                                Text(song.title)
+                                    .font(.system(size: 16, weight: isCurrent ? .semibold : .medium))
+                                    .foregroundColor(isCurrent ? .appleMusicRed : .primary)
+                                    .lineLimit(1)
+                                
+                                if isBufferingOrCaching {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
+                                        .scaleEffect(0.7)
+                                        .frame(width: 14, height: 14)
+                                } else if isCached {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Text("\(song.artist) · \(song.album)")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                        
+                        Spacer()
+                        
+                        if isCurrent {
+                            if AudioPlayerEngine.shared.status == .loading || cacheManager.downloadingIds.contains(song.id) {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(0.85)
+                            } else if isAudioPlaying {
+                                Image(systemName: "speaker.wave.2.fill")
+                                    .foregroundColor(.appleMusicRed)
+                                    .font(.system(size: 14))
+                            }
+                        } else {
+                            Text(song.formattedDuration)
+                                .font(.system(size: 13, design: .monospaced))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    if isCached {
+                        Button(role: .destructive) {
+                            cacheManager.removeSong(id: song.id)
+                        } label: {
+                            Label("Remove", systemImage: "trash")
+                        }
+                    } else {
+                        Button {
+                            cacheManager.startAutoCache(for: song)
+                        } label: {
+                            Label("Download", systemImage: "arrow.down.circle")
+                        }
+                        .tint(.appleMusicRed)
+                    }
+                }
+                .contextMenu {
+                    Button {
+                        player.playSong(song, in: displayedSongs)
+                    } label: {
+                        Label("Play", systemImage: "play.fill")
+                    }
+                    
+                    Button {
+                        queue.insertNext(song)
+                    } label: {
+                        Label("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward")
+                    }
+                    
+                    Button {
+                        queue.append(song)
+                    } label: {
+                        Label("Add to Queue", systemImage: "text.badge.plus")
+                    }
+                    
+                    Divider()
+                    
+                    if isCached {
+                        Button(role: .destructive) {
+                            cacheManager.removeSong(id: song.id)
+                        } label: {
+                            Label("Remove from Cache", systemImage: "trash")
+                        }
+                    } else {
+                        Button {
+                            cacheManager.startAutoCache(for: song)
+                        } label: {
+                            Label("Download to Cache", systemImage: "arrow.down.circle")
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
     }
     #endif
     
