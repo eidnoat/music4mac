@@ -204,17 +204,17 @@ public struct SongListView: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            #if os(macOS)
-            } else if allowSorting {
-                sortableTable
             } else {
-                nonSortableTable
-            }
-            #elseif os(iOS)
-            } else {
+                #if os(macOS)
+                if allowSorting {
+                    sortableTable
+                } else {
+                    nonSortableTable
+                }
+                #elseif os(iOS)
                 mobileSongList
+                #endif
             }
-            #endif
         }
         .onChange(of: columnCustomization) { _, newValue in
             if let data = try? JSONEncoder().encode(newValue) {
