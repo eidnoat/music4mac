@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 public struct iOSMiniPlayerBar: View {
@@ -62,3 +63,4 @@ public struct iOSMiniPlayerBar: View {
         }
     }
 }
+#endif

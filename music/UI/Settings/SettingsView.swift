@@ -34,6 +34,7 @@ public struct SettingsView: View {
                 
                 Divider()
                 
+                #if os(macOS)
                 // Section: General Settings
                 VStack(alignment: .leading, spacing: 14) {
                     Text("General")
@@ -54,6 +55,7 @@ public struct SettingsView: View {
                 }
                 
                 Divider()
+                #endif
                 
                 // Section: Navidrome Server
                 NavidromeServerSection()

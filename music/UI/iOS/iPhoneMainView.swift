@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 public struct iPhoneMainView: View {
@@ -222,3 +223,4 @@ public struct iPhoneMainView: View {
         }
     }
 }
+#endif

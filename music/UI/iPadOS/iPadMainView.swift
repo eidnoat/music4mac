@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 public enum iPadSidebarItem: String, CaseIterable, Identifiable {
@@ -303,3 +304,4 @@ public struct iPadNowPlayingSideBySideView: View {
         }
     }
 }
+#endif

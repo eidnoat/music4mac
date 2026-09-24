@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 public struct iOSNowPlayingView: View {
@@ -388,3 +389,4 @@ public struct iOSQueueSheet: View {
         }
     }
 }
+#endif

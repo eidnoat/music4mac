@@ -59,22 +59,14 @@ public final class CoverImageCache: @unchecked Sendable {
         }
         
         // Coalesce duplicate in-flight requests for the same URL
-        let existingTask: Task<PlatformImage?, Never>? = {
-            lock.lock()
-            defer { lock.unlock() }
-            return inFlightTasks[url]
-        }()
-        
-        if let existing = existingTask {
+        if let existing = getInFlightTask(for: url) {
             return await existing.value
         }
         
         let newTask = Task<PlatformImage?, Never> { [session, weak self] in
             guard let self = self else { return nil }
             defer {
-                self.lock.lock()
-                self.inFlightTasks.removeValue(forKey: url)
-                self.lock.unlock()
+                self.removeInFlightTask(for: url)
             }
             
             do {
@@ -89,11 +81,26 @@ public final class CoverImageCache: @unchecked Sendable {
             }
         }
         
-        lock.lock()
-        inFlightTasks[url] = newTask
-        lock.unlock()
-        
+        setInFlightTask(newTask, for: url)
         return await newTask.value
+    }
+    
+    private func getInFlightTask(for url: URL) -> Task<PlatformImage?, Never>? {
+        lock.lock()
+        defer { lock.unlock() }
+        return inFlightTasks[url]
+    }
+    
+    private func setInFlightTask(_ task: Task<PlatformImage?, Never>, for url: URL) {
+        lock.lock()
+        defer { lock.unlock() }
+        inFlightTasks[url] = task
+    }
+    
+    private func removeInFlightTask(for url: URL) {
+        lock.lock()
+        defer { lock.unlock() }
+        inFlightTasks.removeValue(forKey: url)
     }
     
     private func downsample(fileUrl: URL) -> PlatformImage? {
