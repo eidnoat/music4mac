@@ -128,7 +128,6 @@ public final class ThemeManager: ObservableObject {
     #endif
     
     public func apply() {
-        #if os(macOS)
         if Thread.isMainThread {
             self.performApply()
         } else {
@@ -136,7 +135,6 @@ public final class ThemeManager: ObservableObject {
                 self?.performApply()
             }
         }
-        #endif
     }
     
     #if os(macOS)
@@ -169,6 +167,26 @@ public final class ThemeManager: ObservableObject {
         
         if self.isSystemInDarkMode != isDark {
             self.isSystemInDarkMode = isDark
+        }
+    }
+    #elseif os(iOS)
+    private func performApply() {
+        let style: UIUserInterfaceStyle
+        switch currentTheme {
+        case .system:
+            style = .unspecified
+        case .light:
+            style = .light
+        case .dark:
+            style = .dark
+        }
+        
+        for scene in UIApplication.shared.connectedScenes {
+            if let windowScene = scene as? UIWindowScene {
+                for window in windowScene.windows {
+                    window.overrideUserInterfaceStyle = style
+                }
+            }
         }
     }
     #endif

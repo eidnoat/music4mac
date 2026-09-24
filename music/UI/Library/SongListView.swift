@@ -248,7 +248,40 @@ public struct SongListView: View {
             currentPlayingSongId = player.currentSong?.id
             isAudioPlaying = (player.status == .playing)
         }
+        #if os(iOS)
+        .toolbar {
+            if allowSorting {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Section("Sort By") {
+                            Button("Title") { setSort(keyPath: \Song.title) }
+                            Button("Artist") { setSort(keyPath: \Song.artist) }
+                            Button("Album") { setSort(keyPath: \Song.album) }
+                            Button("Duration") { setSort(keyPath: \Song.duration) }
+                            Button("Plays") { setSort(keyPath: \Song.playCount) }
+                            Button("Date Added") { setSort(keyPath: \Song.dateAddedComparable) }
+                            Button("Last Played") { setSort(keyPath: \Song.lastPlayedComparable) }
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down.circle")
+                            .foregroundColor(.appleMusicRed)
+                    }
+                }
+            }
+        }
+        #endif
     }
+    
+    #if os(iOS)
+    private func setSort<T: Comparable>(keyPath: KeyPath<Song, T>) {
+        if let current = sortOrder.first, current.keyPath == keyPath {
+            let nextOrder: SortOrder = current.order == .forward ? .reverse : .forward
+            self.sortOrder = [KeyPathComparator(keyPath, order: nextOrder)]
+        } else {
+            self.sortOrder = [KeyPathComparator(keyPath, order: .forward)]
+        }
+    }
+    #endif
     
     // MARK: - Tables
     

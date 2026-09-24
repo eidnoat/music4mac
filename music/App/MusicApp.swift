@@ -23,7 +23,7 @@ public struct MusicApp: App {
             MainView()
                 .frame(minWidth: 850, minHeight: 550)
                 .background(Color(nsColor: .windowBackgroundColor))
-                .preferredColorScheme(themeManager.effectiveColorScheme)
+                .preferredColorScheme(themeManager.currentTheme.colorScheme)
                 .tint(Color.appleMusicRed)
                 .accentColor(Color.appleMusicRed)
         }
@@ -42,7 +42,7 @@ public struct MusicApp: App {
         // Main iOS / iPadOS Application Scene
         WindowGroup {
             AppRootView()
-                .preferredColorScheme(themeManager.effectiveColorScheme)
+                .preferredColorScheme(themeManager.currentTheme.colorScheme)
                 .tint(Color.appleMusicRed)
                 .accentColor(Color.appleMusicRed)
         }

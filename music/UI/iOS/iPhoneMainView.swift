@@ -11,6 +11,11 @@ public struct iPhoneMainView: View {
     @State private var searchText = ""
     @State private var isShowingNowPlaying = false
     
+    @AppStorage("music.ios.songSortOption") private var songSortOption: SongSortOption = .title
+    @AppStorage("music.ios.songSortAscending") private var songSortAscending: Bool = true
+    @AppStorage("music.ios.albumSortOption") private var albumSortOption: AlbumSortOption = .title
+    @AppStorage("music.ios.albumSortAscending") private var albumSortAscending: Bool = true
+    
     public init() {}
     
     public var body: some View {
@@ -28,6 +33,10 @@ public struct iPhoneMainView: View {
                                 }
                                 .pickerStyle(.segmented)
                                 .frame(width: 180)
+                            }
+                            
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                sortMenu
                             }
                         }
                 }
@@ -74,10 +83,81 @@ public struct iPhoneMainView: View {
     private var libraryContent: some View {
         if librarySegment == 0 {
             // Tracks List
-            tracksList(songs: storage.songs)
+            let sortedSongs = storage.songs.sorted(by: songSortOption.comparator(ascending: songSortAscending))
+            tracksList(songs: sortedSongs)
         } else {
             // Albums Grid
-            albumsGrid(albums: storage.albums)
+            let sortedAlbums = storage.albums.sorted(by: albumSortOption.comparator(ascending: albumSortAscending))
+            albumsGrid(albums: sortedAlbums)
+        }
+    }
+    
+    // MARK: - Sort Menu
+    private var sortMenu: some View {
+        Menu {
+            if librarySegment == 0 {
+                Section("Sort By") {
+                    ForEach(SongSortOption.allCases) { option in
+                        Button {
+                            if songSortOption == option {
+                                songSortAscending.toggle()
+                            } else {
+                                songSortOption = option
+                                songSortAscending = (option == .title || option == .artist || option == .album)
+                            }
+                        } label: {
+                            HStack {
+                                Text(option.title)
+                                if songSortOption == option {
+                                    Spacer()
+                                    Image(systemName: songSortAscending ? "chevron.up" : "chevron.down")
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                Section {
+                    Button {
+                        songSortAscending.toggle()
+                    } label: {
+                        Label(songSortAscending ? "Ascending" : "Descending", systemImage: songSortAscending ? "arrow.up" : "arrow.down")
+                    }
+                }
+            } else {
+                Section("Sort By") {
+                    ForEach(AlbumSortOption.allCases) { option in
+                        Button {
+                            if albumSortOption == option {
+                                albumSortAscending.toggle()
+                            } else {
+                                albumSortOption = option
+                                albumSortAscending = (option == .title || option == .artist)
+                            }
+                        } label: {
+                            HStack {
+                                Text(option.title)
+                                if albumSortOption == option {
+                                    Spacer()
+                                    Image(systemName: albumSortAscending ? "chevron.up" : "chevron.down")
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                Section {
+                    Button {
+                        albumSortAscending.toggle()
+                    } label: {
+                        Label(albumSortAscending ? "Ascending" : "Descending", systemImage: albumSortAscending ? "arrow.up" : "arrow.down")
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down.circle")
+                .font(.system(size: 17))
+                .foregroundColor(.appleMusicRed)
         }
     }
     
