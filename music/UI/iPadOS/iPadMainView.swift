@@ -185,12 +185,15 @@ public struct iPadPlayerBar: View {
                         .foregroundColor(.secondary)
                         .frame(width: 40, alignment: .trailing)
                     
-                    Slider(
+                    CompactSlider(
                         value: Binding(
                             get: { isScrubbing ? scrubTime : progress.currentTime },
                             set: { scrubTime = $0 }
                         ),
                         in: 0...max(progress.duration, 1),
+                        thumbSize: 10,
+                        trackHeight: 3.5,
+                        activeColor: .primary,
                         onEditingChanged: { editing in
                             isScrubbing = editing
                             if !editing {
@@ -198,7 +201,6 @@ public struct iPadPlayerBar: View {
                             }
                         }
                     )
-                    .tint(.primary)
                     
                     let remaining = max(0, progress.duration - (isScrubbing ? scrubTime : progress.currentTime))
                     Text("-\(formatTime(remaining))")
@@ -217,15 +219,17 @@ public struct iPadPlayerBar: View {
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 
-                Slider(
+                CompactSlider(
                     value: Binding(
                         get: { player.volume },
                         set: { player.volume = $0 }
                     ),
-                    in: 0...1
+                    in: 0...1,
+                    thumbSize: 10,
+                    trackHeight: 3.5,
+                    activeColor: .secondary
                 )
                 .frame(width: 90)
-                .tint(.secondary)
                 
                 Button {
                     showQueue.toggle()

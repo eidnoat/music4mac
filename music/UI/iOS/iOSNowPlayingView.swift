@@ -150,12 +150,15 @@ public struct iOSNowPlayingView: View {
     // MARK: - Scrubber
     private var scrubberView: some View {
         VStack(spacing: 6) {
-            Slider(
+            CompactSlider(
                 value: Binding(
                     get: { isScrubbing ? scrubTime : progress.currentTime },
                     set: { scrubTime = $0 }
                 ),
                 in: 0...max(progress.duration, 1),
+                thumbSize: 10,
+                trackHeight: 4,
+                activeColor: .primary,
                 onEditingChanged: { editing in
                     isScrubbing = editing
                     if !editing {
@@ -165,7 +168,6 @@ public struct iOSNowPlayingView: View {
                     }
                 }
             )
-            .tint(.primary)
             
             HStack {
                 Text(formatTime(isScrubbing ? scrubTime : progress.currentTime))
@@ -257,14 +259,16 @@ public struct iOSNowPlayingView: View {
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
             
-            Slider(
+            CompactSlider(
                 value: Binding(
                     get: { player.volume },
                     set: { player.volume = $0 }
                 ),
-                in: 0...1
+                in: 0...1,
+                thumbSize: 10,
+                trackHeight: 4,
+                activeColor: .secondary
             )
-            .tint(.secondary)
             
             Image(systemName: "speaker.wave.3.fill")
                 .font(.system(size: 12))
