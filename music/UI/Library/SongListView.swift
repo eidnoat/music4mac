@@ -656,7 +656,7 @@ private struct SongTitleCellView: View {
     
     var body: some View {
         let isCached = cacheManager.cachedIds.contains(song.id)
-        let isDownloading = cacheManager.downloadingIds.contains(song.id)
+        let isDownloading = cacheManager.downloadingIds.contains(song.id) || (isPlaying && AudioPlayerEngine.shared.status == .loading)
         
         HStack(spacing: 6) {
             Text(song.title)

@@ -47,10 +47,10 @@ if [ -d "music/Resources/Assets.xcassets" ]; then
     # Also copy standard direct icon files into bundle root for maximum compatibility
     ICON_DIR="music/Resources/Assets.xcassets/AppIcon.appiconset"
     if [ -d "$ICON_DIR" ]; then
-        cp "$ICON_DIR/app_icon_128.png" "$APP_NAME/AppIcon60x60@2x.png" 2>/dev/null || true
-        cp "$ICON_DIR/app_icon_256.png" "$APP_NAME/AppIcon60x60@3x.png" 2>/dev/null || true
-        cp "$ICON_DIR/app_icon_256.png" "$APP_NAME/AppIcon76x76@2x~ipad.png" 2>/dev/null || true
-        cp "$ICON_DIR/app_icon_1024.png" "$APP_NAME/AppIcon.png" 2>/dev/null || true
+        cp "$ICON_DIR/app_icon_ios_128.png" "$APP_NAME/AppIcon60x60@2x.png" 2>/dev/null || true
+        cp "$ICON_DIR/app_icon_ios_256.png" "$APP_NAME/AppIcon60x60@3x.png" 2>/dev/null || true
+        cp "$ICON_DIR/app_icon_ios_256.png" "$APP_NAME/AppIcon76x76@2x~ipad.png" 2>/dev/null || true
+        cp "$ICON_DIR/app_icon_ios_1024.png" "$APP_NAME/AppIcon.png" 2>/dev/null || true
     fi
 fi
 

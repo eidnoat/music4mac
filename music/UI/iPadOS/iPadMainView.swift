@@ -142,9 +142,16 @@ public struct iPadPlayerBar: View {
                     Button {
                         player.togglePlayPause()
                     } label: {
-                        Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 34))
-                            .foregroundColor(.primary)
+                        if player.status == .loading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                                .scaleEffect(1.0)
+                                .frame(width: 34, height: 34)
+                        } else {
+                            Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 34))
+                                .foregroundColor(.primary)
+                        }
                     }
                     .buttonStyle(.plain)
                     

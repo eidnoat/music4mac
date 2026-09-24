@@ -211,10 +211,18 @@ public struct iOSNowPlayingView: View {
             Button {
                 player.togglePlayPause()
             } label: {
-                Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.system(size: 64))
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity)
+                if player.status == .loading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .scaleEffect(1.6)
+                        .frame(width: 64, height: 64)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
+                        .font(.system(size: 64))
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity)
+                }
             }
             .buttonStyle(.plain)
             

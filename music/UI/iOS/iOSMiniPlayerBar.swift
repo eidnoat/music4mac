@@ -32,10 +32,17 @@ public struct iOSMiniPlayerBar: View {
                     Button {
                         player.togglePlayPause()
                     } label: {
-                        Image(systemName: player.status == .playing ? "pause.fill" : "play.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(.primary)
-                            .frame(width: 36, height: 36)
+                        if player.status == .loading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                                .scaleEffect(0.9)
+                                .frame(width: 36, height: 36)
+                        } else {
+                            Image(systemName: player.status == .playing ? "pause.fill" : "play.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.primary)
+                                .frame(width: 36, height: 36)
+                        }
                     }
                     .buttonStyle(.plain)
                     

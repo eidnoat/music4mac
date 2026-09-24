@@ -191,12 +191,22 @@ public struct iPhoneMainView: View {
             ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
                 let isCurrent = player.currentSong?.id == song.id
                 let isCached = cacheManager.isSongCached(id: song.id)
+                let isBufferingOrCaching = (isCurrent && player.status == .loading) || cacheManager.downloadingIds.contains(song.id)
                 
                 Button {
                     player.playSong(song, in: songs)
                 } label: {
                     HStack(spacing: 12) {
-                        TrackCoverView(song: song, size: 44, cornerRadius: 6)
+                        ZStack {
+                            TrackCoverView(song: song, size: 44, cornerRadius: 6)
+                            if isCurrent && player.status == .loading {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.black.opacity(0.35))
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.75)
+                            }
+                        }
                         
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(spacing: 4) {
@@ -205,7 +215,12 @@ public struct iPhoneMainView: View {
                                     .foregroundColor(isCurrent ? .appleMusicRed : .primary)
                                     .lineLimit(1)
                                 
-                                if isCached {
+                                if isBufferingOrCaching {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
+                                        .scaleEffect(0.65)
+                                        .frame(width: 14, height: 14)
+                                } else if isCached {
                                     Image(systemName: "arrow.down.circle.fill")
                                         .font(.system(size: 11))
                                         .foregroundColor(.secondary)
@@ -220,10 +235,20 @@ public struct iPhoneMainView: View {
                         
                         Spacer()
                         
-                        if isCurrent && player.status == .playing {
-                            Image(systemName: "speaker.wave.2.fill")
-                                .foregroundColor(.appleMusicRed)
-                                .font(.system(size: 13))
+                        if isCurrent {
+                            if player.status == .loading || cacheManager.downloadingIds.contains(song.id) {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(0.85)
+                            } else if player.status == .playing {
+                                Image(systemName: "speaker.wave.2.fill")
+                                    .foregroundColor(.appleMusicRed)
+                                    .font(.system(size: 13))
+                            }
+                        } else if cacheManager.downloadingIds.contains(song.id) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                                .scaleEffect(0.85)
                         }
                     }
                 }
