@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 
 public struct MenuBarView: View {
@@ -80,3 +81,4 @@ public struct MenuBarView: View {
         .onReceive(AudioPlayerEngine.shared.$status) { self.isPlaying = ($0 == .playing) }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppKit
 
@@ -151,3 +152,4 @@ public struct MiniPlayerView: View {
         }
     }
 }
+#endif

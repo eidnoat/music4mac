@@ -1,15 +1,20 @@
 import SwiftUI
-import AppKit
 import ImageIO
+
+#if os(macOS)
+import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 
 public typealias LocalCoverCache = CoverImageCache
 
 public final class CoverImageCache: @unchecked Sendable {
     public static let shared = CoverImageCache()
-    private let cache = NSCache<NSURL, NSImage>()
+    private let cache = NSCache<NSURL, PlatformImage>()
     private let maxThumbnailPixelSize: CGFloat = 320
     private let lock = NSLock()
-    private var inFlightTasks: [URL: Task<NSImage?, Never>] = [:]
+    private var inFlightTasks: [URL: Task<PlatformImage?, Never>] = [:]
     
     private let session: URLSession = {
         let config = URLSessionConfiguration.ephemeral
@@ -27,7 +32,7 @@ public final class CoverImageCache: @unchecked Sendable {
     }
     
     /// Synchronously returns cached image if already decoded in memory, or decodes local file URLs with downsampling.
-    public func cachedImage(for url: URL) -> NSImage? {
+    public func cachedImage(for url: URL) -> PlatformImage? {
         let nsUrl = url as NSURL
         if let cached = cache.object(forKey: nsUrl) {
             return cached
@@ -38,12 +43,12 @@ public final class CoverImageCache: @unchecked Sendable {
     }
     
     /// Backward-compatible synchronous lookup for local URLs
-    public func image(for url: URL) -> NSImage? {
+    public func image(for url: URL) -> PlatformImage? {
         return cachedImage(for: url)
     }
     
     /// Asynchronously loads and downsamples image (supports local file URLs and remote HTTP/HTTPS URLs).
-    public func loadImage(for url: URL) async -> NSImage? {
+    public func loadImage(for url: URL) async -> PlatformImage? {
         let nsUrl = url as NSURL
         if let cached = cache.object(forKey: nsUrl) {
             return cached
@@ -54,7 +59,7 @@ public final class CoverImageCache: @unchecked Sendable {
         }
         
         // Coalesce duplicate in-flight requests for the same URL
-        let existingTask: Task<NSImage?, Never>? = {
+        let existingTask: Task<PlatformImage?, Never>? = {
             lock.lock()
             defer { lock.unlock() }
             return inFlightTasks[url]
@@ -64,7 +69,7 @@ public final class CoverImageCache: @unchecked Sendable {
             return await existing.value
         }
         
-        let newTask = Task<NSImage?, Never> { [session, weak self] in
+        let newTask = Task<PlatformImage?, Never> { [session, weak self] in
             guard let self = self else { return nil }
             defer {
                 self.lock.lock()
@@ -91,7 +96,7 @@ public final class CoverImageCache: @unchecked Sendable {
         return await newTask.value
     }
     
-    private func downsample(fileUrl: URL) -> NSImage? {
+    private func downsample(fileUrl: URL) -> PlatformImage? {
         let nsUrl = fileUrl as NSURL
         let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
         guard let source = CGImageSourceCreateWithURL(fileUrl as CFURL, sourceOptions) else {
@@ -100,7 +105,7 @@ public final class CoverImageCache: @unchecked Sendable {
         return createThumbnail(from: source, key: nsUrl)
     }
     
-    private func downsample(data: Data, for url: URL) -> NSImage? {
+    private func downsample(data: Data, for url: URL) -> PlatformImage? {
         let nsUrl = url as NSURL
         let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
         guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else {
@@ -109,7 +114,7 @@ public final class CoverImageCache: @unchecked Sendable {
         return createThumbnail(from: source, key: nsUrl)
     }
     
-    private func createThumbnail(from source: CGImageSource, key: NSURL) -> NSImage? {
+    private func createThumbnail(from source: CGImageSource, key: NSURL) -> PlatformImage? {
         let downsampleOptions: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceShouldCacheImmediately: true,
@@ -118,7 +123,11 @@ public final class CoverImageCache: @unchecked Sendable {
         ]
         
         if let cgThumb = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions as CFDictionary) {
+            #if os(macOS)
             let img = NSImage(cgImage: cgThumb, size: NSSize(width: cgThumb.width, height: cgThumb.height))
+            #elseif os(iOS)
+            let img = UIImage(cgImage: cgThumb)
+            #endif
             let cost = cgThumb.bytesPerRow * cgThumb.height
             cache.setObject(img, forKey: key, cost: cost)
             return img
@@ -140,7 +149,7 @@ public struct CoverImageView<Placeholder: View>: View {
     public let contentMode: ContentMode
     private let placeholder: () -> Placeholder
     
-    @State private var loadedImage: NSImage?
+    @State private var loadedImage: PlatformImage?
     
     public init(
         url: URL?,
@@ -158,7 +167,7 @@ public struct CoverImageView<Placeholder: View>: View {
     public var body: some View {
         Group {
             if let image = loadedImage {
-                Image(nsImage: image)
+                Image(platformImage: image)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
             } else {

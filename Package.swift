@@ -5,7 +5,8 @@ let package = Package(
     name: "music",
     defaultLocalization: "en",
     platforms: [
-        .macOS(.v15)
+        .macOS(.v15),
+        .iOS(.v17)
     ],
     products: [
         .executable(
@@ -22,6 +23,7 @@ let package = Package(
             exclude: [
                 "Resources/Assets.xcassets",
                 "Resources/Info.plist",
+                "Resources/iOS-Info.plist",
                 "Resources/music.entitlements"
             ]
         ),

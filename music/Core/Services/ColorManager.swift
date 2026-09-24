@@ -1,31 +1,50 @@
 import Foundation
-import AppKit
 import SwiftUI
+
+#if os(macOS)
+import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 
 extension Color {
     public static let appleMusicRed = Color(red: 250.0 / 255.0, green: 45.0 / 255.0, blue: 72.0 / 255.0)
+    
+    public static var platformWindowBackground: Color {
+        #if os(macOS)
+        return Color(nsColor: .windowBackgroundColor)
+        #elseif os(iOS)
+        return Color(uiColor: .systemBackground)
+        #endif
+    }
 }
 
-extension NSColor {
-    public static let appleMusicRed = NSColor(srgbRed: 250.0 / 255.0, green: 45.0 / 255.0, blue: 72.0 / 255.0, alpha: 1.0)
+extension PlatformColor {
+    public static let appleMusicRedPlatform: PlatformColor = {
+        #if os(macOS)
+        return NSColor(srgbRed: 250.0 / 255.0, green: 45.0 / 255.0, blue: 72.0 / 255.0, alpha: 1.0)
+        #elseif os(iOS)
+        return UIColor(red: 250.0 / 255.0, green: 45.0 / 255.0, blue: 72.0 / 255.0, alpha: 1.0)
+        #endif
+    }()
 }
 
 public final class ColorManager: ObservableObject {
     public static let shared = ColorManager()
     
-    @Published public var dominantColor: Color = Color(nsColor: .windowBackgroundColor)
+    @Published public var dominantColor: Color = Color.platformWindowBackground
     @Published public var secondaryColor: Color = Color.appleMusicRed
     @Published public var textColor: Color = .primary
     
-    private var lastImage: NSImage?
+    private var lastImage: PlatformImage?
     
     private init() {}
     
-    public func updateColors(from image: NSImage?) {
+    public func updateColors(from image: PlatformImage?) {
         guard let image = image else {
             self.lastImage = nil
             DispatchQueue.main.async {
-                self.dominantColor = Color(nsColor: .windowBackgroundColor)
+                self.dominantColor = Color.platformWindowBackground
                 self.secondaryColor = Color.appleMusicRed
                 self.textColor = .primary
             }
@@ -39,7 +58,7 @@ public final class ColorManager: ObservableObject {
         
         DispatchQueue.global(qos: .userInitiated).async { [weak self, weak image] in
             guard let self = self, let image = image else { return }
-            guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+            guard let cgImage = image.asCGImage else { return }
             
             // Downsample to 16x16 to get average colors fast
             let width = 16

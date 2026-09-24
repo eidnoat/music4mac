@@ -1,6 +1,11 @@
 import Foundation
 import MediaPlayer
+
+#if os(macOS)
 import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 
 public final class NowPlayingManager: @unchecked Sendable {
     public static let shared = NowPlayingManager()
@@ -69,7 +74,7 @@ public final class NowPlayingManager: @unchecked Sendable {
         song: Song?,
         playbackRate: Float,
         currentTime: TimeInterval,
-        artworkImage: NSImage? = nil
+        artworkImage: PlatformImage? = nil
     ) {
         let infoCenter = MPNowPlayingInfoCenter.default()
         guard let song = song else {

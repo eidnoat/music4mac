@@ -1,5 +1,10 @@
 import SwiftUI
+
+#if os(macOS)
 import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 
 public enum AppTheme: String, CaseIterable, Identifiable, Codable {
     case system = "system"
@@ -41,6 +46,7 @@ public enum AppTheme: String, CaseIterable, Identifiable, Codable {
         }
     }
     
+    #if os(macOS)
     public var nsAppearance: NSAppearance? {
         switch self {
         case .system:
@@ -51,6 +57,7 @@ public enum AppTheme: String, CaseIterable, Identifiable, Codable {
             return NSAppearance(named: .darkAqua)
         }
     }
+    #endif
 }
 
 public final class ThemeManager: ObservableObject {
@@ -85,10 +92,11 @@ public final class ThemeManager: ObservableObject {
         let theme = AppTheme(rawValue: savedRaw) ?? .system
         self.currentTheme = theme
         
+        #if os(macOS)
         let style = UserDefaults.standard.string(forKey: "AppleInterfaceStyle")
         self.isSystemInDarkMode = style?.caseInsensitiveCompare("dark") == .orderedSame
-        
         setupSystemThemeObserver()
+        #endif
         
         DispatchQueue.main.async { [weak self] in
             self?.apply()
@@ -96,9 +104,12 @@ public final class ThemeManager: ObservableObject {
     }
     
     deinit {
+        #if os(macOS)
         DistributedNotificationCenter.default().removeObserver(self)
+        #endif
     }
     
+    #if os(macOS)
     private func setupSystemThemeObserver() {
         DistributedNotificationCenter.default().addObserver(
             self,
@@ -114,8 +125,10 @@ public final class ThemeManager: ObservableObject {
             self.apply()
         }
     }
+    #endif
     
     public func apply() {
+        #if os(macOS)
         if Thread.isMainThread {
             self.performApply()
         } else {
@@ -123,8 +136,10 @@ public final class ThemeManager: ObservableObject {
                 self?.performApply()
             }
         }
+        #endif
     }
     
+    #if os(macOS)
     private func performApply() {
         let targetAppearance = currentTheme.nsAppearance
         NSApp?.appearance = targetAppearance
@@ -156,4 +171,5 @@ public final class ThemeManager: ObservableObject {
             self.isSystemInDarkMode = isDark
         }
     }
+    #endif
 }

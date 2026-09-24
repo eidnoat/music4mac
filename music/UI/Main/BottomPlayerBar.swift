@@ -1,5 +1,5 @@
+#if os(macOS)
 import SwiftUI
-import AppKit
 import AVFoundation
 
 public struct BottomPlayerBar: View {
@@ -303,3 +303,4 @@ public struct PlaybackProgressBar: View {
         .animation(.none, value: currentTime)
     }
 }
+#endif

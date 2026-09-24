@@ -1,5 +1,7 @@
 import SwiftUI
+#if os(macOS)
 import AppKit
+#endif
 
 public struct SongListView: View {
     public let title: String
@@ -528,11 +530,13 @@ public struct SongListView: View {
                     Button("Remove from Cache") {
                         SongCacheManager.shared.removeSong(id: song.id)
                     }
+                    #if os(macOS)
                     if let cachedUrl = SongCacheManager.shared.getCachedFileUrl(for: song) {
                         Button("Show Cached File in Finder") {
                             NSWorkspace.shared.selectFile(cachedUrl.path, inFileViewerRootedAtPath: "")
                         }
                     }
+                    #endif
                 } else {
                     Button("Cache Track") {
                         SongCacheManager.shared.startAutoCache(for: song)

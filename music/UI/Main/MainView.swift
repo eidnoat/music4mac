@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 
 public struct MainView: View {
@@ -256,3 +257,4 @@ public struct QueueSideView: View {
         }
     }
 }
+#endif

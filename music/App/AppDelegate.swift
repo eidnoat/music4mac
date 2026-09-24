@@ -1,3 +1,4 @@
+#if os(macOS)
 import AppKit
 import SwiftUI
 
@@ -144,3 +145,4 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         MiniPlayerPanel.shared.makeKeyAndOrderFront(nil)
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 
 public enum NavigationItem: Hashable {
@@ -39,3 +40,4 @@ public struct SidebarView: View {
         .listStyle(.sidebar)
     }
 }
+#endif

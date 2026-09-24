@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 
 public struct SettingsView: View {
     @ObservedObject var storage = StorageManager.shared

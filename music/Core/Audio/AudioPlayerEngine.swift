@@ -1,6 +1,5 @@
 import Foundation
 import AVFoundation
-import AppKit
 import Combine
 
 public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
@@ -42,6 +41,10 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     @Published public var errorMessage: String? = nil
     
     private init() {
+        #if os(iOS)
+        configureAudioSession()
+        #endif
+        
         let savedVol = UserDefaults.standard.object(forKey: "music.player.volume") != nil
             ? UserDefaults.standard.float(forKey: "music.player.volume")
             : UserDefaults.standard.float(forKey: "sylvakru.player.volume")
@@ -468,6 +471,18 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         }
         stop()
     }
+    
+    #if os(iOS)
+    private func configureAudioSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [])
+            try session.setActive(true)
+        } catch {
+            print("[AudioPlayerEngine] Failed to configure AVAudioSession: \(error)")
+        }
+    }
+    #endif
     
     deinit {
         teardownPlayer()

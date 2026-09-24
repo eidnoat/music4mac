@@ -1,15 +1,24 @@
 import SwiftUI
+
+#if os(macOS)
 import AppKit
+#endif
 
 @main
 public struct MusicApp: App {
+    #if os(macOS)
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #elseif os(iOS)
+    @UIApplicationDelegateAdaptor(IOSAppDelegate.self) var appDelegate
+    #endif
+    
     @ObservedObject var themeManager = ThemeManager.shared
     
     public init() {}
     
     public var body: some Scene {
-        // Main Application Window
+        #if os(macOS)
+        // Main macOS Application Window
         WindowGroup {
             MainView()
                 .frame(minWidth: 850, minHeight: 550)
@@ -29,9 +38,19 @@ public struct MusicApp: App {
             }
             PlaybackCommands()
         }
+        #elseif os(iOS)
+        // Main iOS / iPadOS Application Scene
+        WindowGroup {
+            AppRootView()
+                .preferredColorScheme(themeManager.effectiveColorScheme)
+                .tint(Color.appleMusicRed)
+                .accentColor(Color.appleMusicRed)
+        }
+        #endif
     }
 }
 
+#if os(macOS)
 public struct PlaybackCommands: Commands {
     @ObservedObject var player = AudioPlayerEngine.shared
     
@@ -78,3 +97,4 @@ public struct PlaybackCommands: Commands {
         }
     }
 }
+#endif
