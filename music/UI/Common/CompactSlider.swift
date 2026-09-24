@@ -1,8 +1,8 @@
 import SwiftUI
 
-public struct CompactSlider: View {
-    @Binding var value: Double
-    let range: ClosedRange<Double>
+public struct CompactSlider<V: BinaryFloatingPoint>: View {
+    @Binding var value: V
+    let range: ClosedRange<V>
     var thumbSize: CGFloat
     var trackHeight: CGFloat
     var activeColor: Color
@@ -11,8 +11,8 @@ public struct CompactSlider: View {
     @State private var isDragging: Bool = false
     
     public init(
-        value: Binding<Double>,
-        in range: ClosedRange<Double> = 0...1,
+        value: Binding<V>,
+        in range: ClosedRange<V> = 0...1,
         thumbSize: CGFloat = 10,
         trackHeight: CGFloat = 4,
         activeColor: Color = .appleMusicRed,
@@ -28,8 +28,11 @@ public struct CompactSlider: View {
     
     public var body: some View {
         GeometryReader { geo in
-            let totalRange = max(range.upperBound - range.lowerBound, 0.0001)
-            let progress = min(max((value - range.lowerBound) / totalRange, 0), 1)
+            let lower = Double(range.lowerBound)
+            let upper = Double(range.upperBound)
+            let totalRange = max(upper - lower, 0.0001)
+            let currentVal = Double(value)
+            let progress = min(max((currentVal - lower) / totalRange, 0), 1)
             let width = geo.size.width
             let knobX = width * CGFloat(progress)
             
@@ -61,11 +64,11 @@ public struct CompactSlider: View {
                             onEditingChanged?(true)
                         }
                         let pct = min(max(gesture.location.x / max(width, 1), 0), 1)
-                        value = range.lowerBound + Double(pct) * totalRange
+                        value = V(lower + Double(pct) * totalRange)
                     }
                     .onEnded { gesture in
                         let pct = min(max(gesture.location.x / max(width, 1), 0), 1)
-                        value = range.lowerBound + Double(pct) * totalRange
+                        value = V(lower + Double(pct) * totalRange)
                         isDragging = false
                         onEditingChanged?(false)
                     }

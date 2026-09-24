@@ -191,7 +191,6 @@ public struct iPhoneMainView: View {
             ForEach(songs) { song in
                 let isCurrent = player.currentSong?.id == song.id
                 let isCached = cacheManager.isSongCached(id: song.id)
-                let isLoading = (isCurrent && player.status == .loading) || cacheManager.downloadingIds.contains(song.id)
                 let isPlaying = isCurrent && player.status == .playing
                 
                 Button {

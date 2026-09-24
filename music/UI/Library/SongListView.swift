@@ -295,7 +295,6 @@ public struct SongListView: View {
             ForEach(displayedSongs) { song in
                 let isCurrent = currentPlayingSongId == song.id
                 let isCached = cacheManager.isSongCached(id: song.id)
-                let isLoading = (isCurrent && AudioPlayerEngine.shared.status == .loading) || cacheManager.downloadingIds.contains(song.id)
                 let isPlaying = isCurrent && isAudioPlaying
                 
                 Button {
