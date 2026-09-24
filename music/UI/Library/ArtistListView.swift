@@ -70,13 +70,14 @@ public struct ArtistListView: View {
                             Label("Play All", systemImage: "play.fill")
                         }
                         .buttonStyle(.borderedProminent)
+                        .tint(.appleMusicRed)
                     }
                     .padding(.horizontal, 24)
                     .padding(.vertical, 16)
                     
                     Divider()
                     
-                    SongListView(title: "", songs: artist.songs)
+                    SongListView(title: "", songs: artist.songs, allowSorting: false)
                         .id("artist_songs_\(artist.id)_\(artist.songs.count)")
                 }
             } else {

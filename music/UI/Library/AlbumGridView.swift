@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 public struct AlbumGridView: View {
     public let albums: [Album]
@@ -106,65 +109,307 @@ public struct AlbumCard: View {
 }
 
 public struct AlbumDetailView: View {
-    let album: Album
-    let onBack: () -> Void
+    public let album: Album
+    public let onBack: () -> Void
+    
+    @ObservedObject private var player = AudioPlayerEngine.shared
+    @ObservedObject private var queue = PlayQueueManager.shared
+    @ObservedObject private var cacheManager = SongCacheManager.shared
+    
+    public init(album: Album, onBack: @escaping () -> Void = {}) {
+        self.album = album
+        self.onBack = onBack
+    }
+    
+    private var totalDurationString: String {
+        let total = album.songs.reduce(0) { $0 + $1.duration }
+        guard total > 0 else { return "" }
+        let mins = Int(total) / 60
+        if mins < 60 {
+            return "\(mins) mins"
+        } else {
+            let hrs = mins / 60
+            let remMins = mins % 60
+            if remMins == 0 {
+                return "\(hrs) hr"
+            } else {
+                return "\(hrs) hr \(remMins) mins"
+            }
+        }
+    }
     
     public var body: some View {
+        List {
+            // 1. Album Header Section
+            Section {
+                albumHeaderView
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+            }
+            
+            // 2. Tracks Section
+            Section {
+                ForEach(Array(album.songs.enumerated()), id: \.element.id) { index, song in
+                    albumSongRow(song: song, index: index)
+                }
+            }
+        }
+        .listStyle(.plain)
+        #if os(iOS)
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 70) // Prevent content from being hidden by floating mini player
+        }
+        #endif
+        .navigationTitle(album.title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    // MARK: - Album Header
+    private var albumHeaderView: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 20) {
+            #if os(macOS)
+            HStack {
+                Button(action: onBack) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Albums")
+                    }
+                }
+                .buttonStyle(.plain)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            #elseif os(iOS)
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                HStack {
+                    Button(action: onBack) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Albums")
+                        }
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.appleMusicRed)
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+            }
+            #endif
+            
+            VStack(spacing: 12) {
+                // Large Centered Cover
+                CoverImageView(url: album.effectiveCoverUrl) {
+                    ZStack {
+                        Color.secondary.opacity(0.12)
+                        Image(systemName: "square.stack")
+                            .font(.system(size: 50))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .frame(width: 190, height: 190)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shadow(color: .black.opacity(0.18), radius: 12, x: 0, y: 6)
+                .padding(.top, 8)
+                
+                // Title
+                Text(album.title)
+                    .font(.system(size: 20, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 24)
+                
+                // Artist
                 Button {
-                    onBack()
+                    NavigationCoordinator.shared.navigateToArtist(named: album.artist)
                 } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
+                    Text(album.artist)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.appleMusicRed)
                 }
                 .buttonStyle(.plain)
                 
-                CoverImageView(url: album.effectiveCoverUrl) {
-                    Color.secondary.opacity(0.1)
+                // Metadata (Year, Track count, Total duration)
+                HStack(spacing: 4) {
+                    if let year = album.year {
+                        Text("\(year) ·")
+                    }
+                    Text("\(album.songs.count) tracks")
+                    if !totalDurationString.isEmpty {
+                        Text("· \(totalDurationString)")
+                    }
                 }
-                .frame(width: 100, height: 100)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(album.title)
-                        .font(.title2.bold())
+                // Action Buttons: Play & Shuffle
+                HStack(spacing: 14) {
                     Button {
-                        NavigationCoordinator.shared.navigateToArtist(named: album.artist)
+                        if !album.songs.isEmpty {
+                            queue.isShuffleEnabled = false
+                            player.playSong(album.songs[0], in: album.songs)
+                        }
                     } label: {
-                        Text(album.artist)
-                            .font(.headline)
-                            .foregroundColor(.accentColor)
+                        HStack(spacing: 6) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 14))
+                            Text("Play")
+                                .font(.system(size: 15, weight: .semibold))
+                        }
+                        .foregroundColor(.appleMusicRed)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(Color.secondary.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    HStack(spacing: 8) {
-                        if let year = album.year {
-                            Text("\(year)")
+                    
+                    Button {
+                        if !album.songs.isEmpty {
+                            queue.isShuffleEnabled = true
+                            let randomSong = album.songs.randomElement() ?? album.songs[0]
+                            player.playSong(randomSong, in: album.songs)
                         }
-                        Text("\(album.songs.count) tracks")
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "shuffle")
+                                .font(.system(size: 14))
+                            Text("Shuffle")
+                                .font(.system(size: 15, weight: .semibold))
+                        }
+                        .foregroundColor(.appleMusicRed)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(Color.secondary.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
-                    .font(.subheadline)
-                    .foregroundColor(.secondary.opacity(0.8))
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+            }
+            .padding(.bottom, 16)
+        }
+    }
+    
+    // MARK: - Song Row
+    private func albumSongRow(song: Song, index: Int) -> some View {
+        let isCurrent = player.currentSong?.id == song.id
+        let isPlaying = isCurrent && player.status == .playing
+        let isCached = cacheManager.isSongCached(id: song.id)
+        
+        return Button {
+            player.playSong(song, in: album.songs)
+        } label: {
+            HStack(spacing: 12) {
+                // 1. Track Number or Playing Waveform
+                ZStack(alignment: .center) {
+                    if isPlaying {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .foregroundColor(.appleMusicRed)
+                            .font(.system(size: 13))
+                    } else {
+                        Text("\(song.trackNumber ?? (index + 1))")
+                            .font(.system(size: 14, design: .monospaced))
+                            .foregroundColor(isCurrent ? .appleMusicRed : .secondary)
+                    }
+                }
+                .frame(width: 24, alignment: .center)
+                
+                // 2. Track Title & Optional Guest Artist
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Text(song.title)
+                            .font(.system(size: 15, weight: isCurrent ? .semibold : .regular))
+                            .foregroundColor(isCurrent ? .appleMusicRed : .primary)
+                            .lineLimit(1)
+                        
+                        if isCached {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        } else if cacheManager.downloadingIds.contains(song.id) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                                .scaleEffect(0.65)
+                                .frame(width: 14, height: 14)
+                        }
+                    }
+                    
+                    if !song.artist.isEmpty && song.artist.localizedCaseInsensitiveCompare(album.artist) != .orderedSame {
+                        Text(song.artist)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 
                 Spacer()
                 
-                Button {
-                    if !album.songs.isEmpty {
-                        AudioPlayerEngine.shared.playSong(album.songs[0], in: album.songs)
+                // 3. Trailing Status (Duration or Loading spinner)
+                ZStack(alignment: .trailing) {
+                    if isCurrent && player.status == .loading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .scaleEffect(0.85)
+                    } else if cacheManager.downloadingIds.contains(song.id) && !isPlaying {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .scaleEffect(0.85)
+                    } else {
+                        Text(song.formattedDuration)
+                            .font(.system(size: 13, design: .monospaced))
+                            .foregroundColor(.secondary)
                     }
-                } label: {
-                    Label("Play Album", systemImage: "play.fill")
                 }
-                .buttonStyle(.borderedProminent)
+                .frame(width: 48, alignment: .trailing)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            
-            Divider()
-            
-            SongListView(title: "", songs: album.songs)
-                .id("album_songs_\(album.id)_\(album.songs.count)")
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
+        .transaction { $0.animation = nil }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if isCached {
+                Button(role: .destructive) {
+                    cacheManager.removeSong(id: song.id)
+                } label: {
+                    Label("Remove", systemImage: "trash")
+                }
+            } else {
+                Button {
+                    cacheManager.startAutoCache(for: song)
+                } label: {
+                    Label("Download", systemImage: "arrow.down.circle")
+                }
+                .tint(.appleMusicRed)
+            }
+        }
+        .contextMenu {
+            Button {
+                player.playSong(song, in: album.songs)
+            } label: {
+                Label("Play", systemImage: "play.fill")
+            }
+            if isCached {
+                Button(role: .destructive) {
+                    cacheManager.removeSong(id: song.id)
+                } label: {
+                    Label("Remove Download", systemImage: "trash")
+                }
+            } else {
+                Button {
+                    cacheManager.startAutoCache(for: song)
+                } label: {
+                    Label("Download", systemImage: "arrow.down.circle")
+                }
+            }
         }
     }
 }
