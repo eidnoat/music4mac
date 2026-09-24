@@ -65,7 +65,7 @@ public struct iPadMainView: View {
             .searchable(text: $nav.searchText, prompt: "Search music")
         }
         .sheet(isPresented: $isShowingNowPlayingModal) {
-            iPadNowPlayingSideBySideView()
+            iOSNowPlayingView()
         }
     }
     
@@ -258,65 +258,11 @@ public struct iPadPlayerBar: View {
     }
 }
 
-// MARK: - Side-by-Side iPad Modal (Cover + Real-time Scrolling Lyrics)
+// MARK: - iPad Now Playing Modal
 public struct iPadNowPlayingSideBySideView: View {
-    @ObservedObject var player = AudioPlayerEngine.shared
-    @Environment(\.dismiss) private var dismiss
-    
     public init() {}
-    
     public var body: some View {
-        NavigationStack {
-            HStack(spacing: 40) {
-                // Left: Big Cover
-                VStack(spacing: 20) {
-                    Spacer()
-                    if let song = player.currentSong {
-                        CoverImageView(url: song.effectiveCoverUrl) {
-                            ZStack {
-                                Color.secondary.opacity(0.12)
-                                Image(systemName: "music.note")
-                                    .font(.system(size: 80))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .frame(width: 320, height: 320)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
-                        
-                        VStack(spacing: 6) {
-                            Text(song.title)
-                                .font(.title2.bold())
-                                .foregroundColor(.primary)
-                                .lineLimit(1)
-                            Text("\(song.artist) — \(song.album)")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
-                    }
-                    Spacer()
-                }
-                .frame(maxWidth: 400)
-                .padding(.leading, 30)
-                
-                Divider()
-                
-                // Right: Real-time Lyrics
-                VStack {
-                    LyricsView()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.trailing, 20)
-            }
-            .navigationTitle("Now Playing")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
+        iOSNowPlayingView()
     }
 }
 #endif

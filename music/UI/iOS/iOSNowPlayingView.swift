@@ -34,7 +34,7 @@ public struct iOSNowPlayingView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .transition(.opacity)
                     } else {
-                        artworkView(maxSize: min(geometry.size.width - 56, geometry.size.height * 0.45))
+                        artworkView(maxSize: min(geometry.size.width - 56, geometry.size.height * 0.45, 380))
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                     }
                     
@@ -65,7 +65,9 @@ public struct iOSNowPlayingView: View {
                         .padding(.top, 16)
                         .padding(.bottom, 20)
                 }
+                .frame(maxWidth: 520)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .sheet(isPresented: $showQueue) {
             iOSQueueSheet()

@@ -99,18 +99,13 @@ public struct iPhoneMainView: View {
                 Section("Sort By") {
                     ForEach(SongSortOption.allCases) { option in
                         Button {
-                            if songSortOption == option {
-                                songSortAscending.toggle()
-                            } else {
-                                songSortOption = option
-                                songSortAscending = (option == .title || option == .artist || option == .album)
-                            }
+                            songSortOption = option
                         } label: {
                             HStack {
                                 Text(option.title)
                                 if songSortOption == option {
                                     Spacer()
-                                    Image(systemName: songSortAscending ? "chevron.up" : "chevron.down")
+                                    Image(systemName: "checkmark")
                                 }
                             }
                         }
@@ -119,27 +114,40 @@ public struct iPhoneMainView: View {
                 
                 Section {
                     Button {
-                        songSortAscending.toggle()
+                        songSortAscending = true
                     } label: {
-                        Label(songSortAscending ? "Ascending" : "Descending", systemImage: songSortAscending ? "arrow.up" : "arrow.down")
+                        HStack {
+                            Text("Ascending")
+                            if songSortAscending {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    
+                    Button {
+                        songSortAscending = false
+                    } label: {
+                        HStack {
+                            Text("Descending")
+                            if !songSortAscending {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
                     }
                 }
             } else {
                 Section("Sort By") {
                     ForEach(AlbumSortOption.allCases) { option in
                         Button {
-                            if albumSortOption == option {
-                                albumSortAscending.toggle()
-                            } else {
-                                albumSortOption = option
-                                albumSortAscending = (option == .title || option == .artist)
-                            }
+                            albumSortOption = option
                         } label: {
                             HStack {
                                 Text(option.title)
                                 if albumSortOption == option {
                                     Spacer()
-                                    Image(systemName: albumSortAscending ? "chevron.up" : "chevron.down")
+                                    Image(systemName: "checkmark")
                                 }
                             }
                         }
@@ -148,9 +156,27 @@ public struct iPhoneMainView: View {
                 
                 Section {
                     Button {
-                        albumSortAscending.toggle()
+                        albumSortAscending = true
                     } label: {
-                        Label(albumSortAscending ? "Ascending" : "Descending", systemImage: albumSortAscending ? "arrow.up" : "arrow.down")
+                        HStack {
+                            Text("Ascending")
+                            if albumSortAscending {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    
+                    Button {
+                        albumSortAscending = false
+                    } label: {
+                        HStack {
+                            Text("Descending")
+                            if !albumSortAscending {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
                     }
                 }
             }
