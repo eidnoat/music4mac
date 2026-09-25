@@ -92,6 +92,7 @@ public struct iPadMainView: View {
                         isShowingNowPlayingModal = false
                     }
                 })
+                .id("ipad_now_playing")
                 .ignoresSafeArea()
                 .transition(.move(edge: .bottom))
                 .zIndex(100)
@@ -145,8 +146,9 @@ public struct iPadPlayerBar: View {
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
-                    .frame(width: 180, alignment: .leading)
+                    .frame(maxWidth: 240, alignment: .leading)
                 }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             

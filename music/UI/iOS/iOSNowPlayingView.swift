@@ -63,13 +63,8 @@ public struct iOSNowPlayingView: View {
                         let isDraggedPastThreshold = dragOffset > 130 || value.predictedEndTranslation.height > 250
                         
                         if isFlick || isDraggedPastThreshold {
-                            let targetHeight = geometry.size.height > 0 ? geometry.size.height : 900
-                            withAnimation(.easeOut(duration: 0.22)) {
-                                dragOffset = targetHeight
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
-                                closeView()
-                            }
+                            dragOffset = 0
+                            closeView()
                         } else {
                             // Apple-native bouncy interactive spring rebound
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.68)) {
@@ -78,6 +73,9 @@ public struct iOSNowPlayingView: View {
                         }
                     }
             )
+            .onAppear {
+                dragOffset = 0
+            }
             .onDisappear {
                 dragOffset = 0
             }

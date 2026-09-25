@@ -78,6 +78,7 @@ public struct iPhoneMainView: View {
                         isShowingNowPlaying = false
                     }
                 })
+                .id("ios_now_playing")
                 .ignoresSafeArea()
                 .transition(.move(edge: .bottom))
                 .zIndex(100)
