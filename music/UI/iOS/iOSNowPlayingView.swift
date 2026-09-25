@@ -1,5 +1,6 @@
 #if os(iOS)
 import SwiftUI
+import UIKit
 
 public struct iOSNowPlayingView: View {
     @ObservedObject var player = AudioPlayerEngine.shared
@@ -73,12 +74,43 @@ public struct iOSNowPlayingView: View {
         }
     }
     
+    // MARK: - Safe Area Helpers
+    private var windowSafeAreaInsets: UIEdgeInsets {
+        if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+           let window = scene.windows.first(where: { $0.isKeyWindow }) {
+            return window.safeAreaInsets
+        }
+        if let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap({ $0.windows })
+            .first(where: { $0.isKeyWindow }) {
+            return window.safeAreaInsets
+        }
+        return .zero
+    }
+    
+    private func topHeaderPadding(geometry: GeometryProxy) -> CGFloat {
+        let safeTop = max(geometry.safeAreaInsets.top, windowSafeAreaInsets.top)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            // iPadOS: status bar is ~24pt, place header nicely below status bar with comfortable clearance
+            return max(safeTop, 24) + 16
+        } else {
+            // iOS: Dynamic Island / notch is ~47-59pt, place header cleanly below the status bar clock / Dynamic Island
+            return max(safeTop, 48) + 16
+        }
+    }
+    
+    private func bottomBarPadding(geometry: GeometryProxy) -> CGFloat {
+        let safeBottom = max(geometry.safeAreaInsets.bottom, windowSafeAreaInsets.bottom)
+        return max(safeBottom, 20)
+    }
+    
     // MARK: - Portrait Layout
     private func portraitLayout(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             // Top Bar: Drag indicator & dismiss chevron (full width)
             headerBar
-                .padding(.top, max(geometry.safeAreaInsets.top + 8, 28))
+                .padding(.top, topHeaderPadding(geometry: geometry))
             
             VStack(spacing: 0) {
                 Spacer(minLength: 8)
@@ -89,7 +121,7 @@ public struct iOSNowPlayingView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .transition(.opacity)
                 } else {
-                    artworkView(maxSize: min(geometry.size.width - 56, geometry.size.height * 0.45, 420))
+                    artworkView(maxSize: min(geometry.size.width - 64, geometry.size.height * 0.40, 380))
                         .transition(.scale(scale: 0.95).combined(with: .opacity))
                 }
                 
@@ -118,7 +150,7 @@ public struct iOSNowPlayingView: View {
                 bottomAccessories
                     .padding(.horizontal, 32)
                     .padding(.top, 16)
-                    .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20))
+                    .padding(.bottom, bottomBarPadding(geometry: geometry))
             }
             .frame(maxWidth: 560)
         }
@@ -129,7 +161,7 @@ public struct iOSNowPlayingView: View {
     private func landscapeLayout(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             headerBar
-                .padding(.top, max(geometry.safeAreaInsets.top + 8, 28))
+                .padding(.top, topHeaderPadding(geometry: geometry))
             
             HStack(spacing: 48) {
                 // Left: Large Artwork or Real-time Lyrics
@@ -176,7 +208,7 @@ public struct iOSNowPlayingView: View {
                 .frame(maxWidth: min(geometry.size.width * 0.46, 500))
             }
             .padding(.horizontal, 32)
-            .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20))
+            .padding(.bottom, bottomBarPadding(geometry: geometry))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
