@@ -7,7 +7,7 @@ public struct iPhoneMainView: View {
     @ObservedObject var cacheManager = SongCacheManager.shared
     
     @State private var selectedTab = 0
-    @State private var librarySegment = 0 // 0: Tracks, 1: Albums
+    @State private var librarySegment = 0 // 0: Tracks, 1: Albums, 2: Artists
     @State private var searchText = ""
     @State private var isShowingNowPlaying = false
     
@@ -15,6 +15,7 @@ public struct iPhoneMainView: View {
     @AppStorage("music.ios.songSortAscending") private var songSortAscending: Bool = true
     @AppStorage("music.ios.albumSortOption") private var albumSortOption: AlbumSortOption = .title
     @AppStorage("music.ios.albumSortAscending") private var albumSortAscending: Bool = true
+    @AppStorage("music.ios.artistSortAscending") private var artistSortAscending: Bool = true
     
     public init() {}
     
@@ -30,9 +31,10 @@ public struct iPhoneMainView: View {
                                 Picker("Library View", selection: $librarySegment) {
                                     Text("Tracks").tag(0)
                                     Text("Albums").tag(1)
+                                    Text("Artists").tag(2)
                                 }
                                 .pickerStyle(.segmented)
-                                .frame(width: 180)
+                                .frame(width: 250)
                             }
                             
                             ToolbarItem(placement: .navigationBarTrailing) {
@@ -81,14 +83,23 @@ public struct iPhoneMainView: View {
     // MARK: - Library Content
     @ViewBuilder
     private var libraryContent: some View {
-        if librarySegment == 0 {
+        switch librarySegment {
+        case 0:
             // Tracks List
             let sortedSongs = storage.songs.sorted(by: songSortOption.comparator(ascending: songSortAscending))
             tracksList(songs: sortedSongs)
-        } else {
+        case 1:
             // Albums Grid
             let sortedAlbums = storage.albums.sorted(by: albumSortOption.comparator(ascending: albumSortAscending))
             albumsGrid(albums: sortedAlbums)
+        default:
+            // Artists List
+            let sortedArtists = storage.artists.sorted { a, b in
+                artistSortAscending
+                    ? a.name.localizedStandardCompare(b.name) == .orderedAscending
+                    : a.name.localizedStandardCompare(b.name) == .orderedDescending
+            }
+            artistsList(artists: sortedArtists)
         }
     }
     
@@ -106,7 +117,7 @@ public struct iPhoneMainView: View {
                     Text("Ascending").tag(true)
                     Text("Descending").tag(false)
                 }
-            } else {
+            } else if librarySegment == 1 {
                 Picker("Sort By", selection: $albumSortOption) {
                     ForEach(AlbumSortOption.allCases) { option in
                         Text(option.title).tag(option)
@@ -114,6 +125,11 @@ public struct iPhoneMainView: View {
                 }
                 
                 Picker("Order", selection: $albumSortAscending) {
+                    Text("Ascending").tag(true)
+                    Text("Descending").tag(false)
+                }
+            } else {
+                Picker("Order", selection: $artistSortAscending) {
                     Text("Ascending").tag(true)
                     Text("Descending").tag(false)
                 }
@@ -290,6 +306,42 @@ public struct iPhoneMainView: View {
             .padding(.horizontal, 16)
             .padding(.top, 12)
             .padding(.bottom, 80) // Leave space for mini player
+        }
+    }
+    
+    // MARK: - Artists List
+    private func artistsList(artists: [Artist]) -> some View {
+        List {
+            ForEach(artists) { artist in
+                NavigationLink(destination: ArtistDetailView(artist: artist)) {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.secondary.opacity(0.12))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "music.mic")
+                                .font(.system(size: 18))
+                                .foregroundColor(.appleMusicRed)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(artist.name)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                            Text("\(artist.albumCount) albums · \(artist.songCount) tracks")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .padding(.vertical, 3)
+                }
+            }
+        }
+        .listStyle(.plain)
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 70) // Prevent list content from being covered by mini player
         }
     }
 }

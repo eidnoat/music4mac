@@ -24,11 +24,15 @@ public struct AppRootView: View {
     }
     
     public var body: some View {
-        if isPadLayout {
-            iPadMainView()
-        } else {
-            iPhoneMainView()
+        Group {
+            if isPadLayout {
+                iPadMainView()
+            } else {
+                iPhoneMainView()
+            }
         }
+        .tint(Color.appleMusicRed)
+        .accentColor(Color.appleMusicRed)
     }
     #endif
 }

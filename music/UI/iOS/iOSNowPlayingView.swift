@@ -11,6 +11,7 @@ public struct iOSNowPlayingView: View {
     @State private var showQueue: Bool = false
     @State private var isScrubbing: Bool = false
     @State private var scrubTime: TimeInterval = 0
+    @State private var dragOffset: CGFloat = 0
     
     public init() {}
     
@@ -29,6 +30,35 @@ public struct iOSNowPlayingView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .offset(y: max(0, dragOffset))
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 15)
+                    .onChanged { value in
+                        guard !isScrubbing else { return }
+                        // Respond to downward pull where vertical motion dominates
+                        if value.translation.height > 0 && value.translation.height > abs(value.translation.width) * 1.2 {
+                            dragOffset = value.translation.height
+                        }
+                    }
+                    .onEnded { value in
+                        guard !isScrubbing else { return }
+                        if dragOffset > 100 || value.predictedEndTranslation.height > 200 {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                dragOffset = geometry.size.height
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                dismiss()
+                            }
+                        } else {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                                dragOffset = 0
+                            }
+                        }
+                    }
+            )
+            .onDisappear {
+                dragOffset = 0
+            }
         }
         .sheet(isPresented: $showQueue) {
             iOSQueueSheet()
@@ -144,37 +174,46 @@ public struct iOSNowPlayingView: View {
     
     // MARK: - Header
     private var headerBar: some View {
-        HStack {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.secondary)
+        VStack(spacing: 4) {
+            Capsule()
+                .fill(Color.secondary.opacity(0.35))
+                .frame(width: 36, height: 5)
+                .padding(.top, 2)
+                .contentShape(Rectangle().inset(by: -10))
+            
+            HStack {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 44, height: 44)
+                }
+                
+                Spacer()
+                
+                VStack(spacing: 2) {
+                    Text("NOW PLAYING")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(.secondary)
+                    if let song = player.currentSong {
+                        Text(song.album)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                
+                Spacer()
+                
+                // Balance placeholder matching dismiss button width
+                Color.clear
                     .frame(width: 44, height: 44)
             }
-            
-            Spacer()
-            
-            VStack(spacing: 2) {
-                Text("NOW PLAYING")
-                    .font(.system(size: 10, weight: .bold))
-                    .tracking(1)
-                    .foregroundColor(.secondary)
-                if let song = player.currentSong {
-                    Text(song.album)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            
-            Spacer()
-            
-            // Balance placeholder matching dismiss button width
-            Color.clear
-                .frame(width: 44, height: 44)
         }
+        .contentShape(Rectangle())
     }
     
     // MARK: - Artwork

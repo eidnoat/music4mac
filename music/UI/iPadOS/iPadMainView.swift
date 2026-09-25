@@ -36,10 +36,19 @@ public struct iPadMainView: View {
         NavigationSplitView {
             List(iPadSidebarItem.allCases, selection: $selectedItem) { item in
                 NavigationLink(value: item) {
-                    Label(item.rawValue, systemImage: item.icon)
-                        .font(.system(size: 15, weight: .medium))
+                    Label {
+                        Text(item.rawValue)
+                            .font(.system(size: 15, weight: selectedItem == item ? .semibold : .medium))
+                            .foregroundColor(selectedItem == item ? .appleMusicRed : .primary)
+                    } icon: {
+                        Image(systemName: item.icon)
+                            .foregroundColor(.appleMusicRed)
+                    }
                 }
             }
+            .listStyle(.sidebar)
+            .tint(Color.appleMusicRed)
+            .accentColor(Color.appleMusicRed)
             .navigationTitle("music")
         } detail: {
             VStack(spacing: 0) {
@@ -64,6 +73,8 @@ public struct iPadMainView: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $nav.searchText, prompt: "Search music")
         }
+        .tint(Color.appleMusicRed)
+        .accentColor(Color.appleMusicRed)
         .fullScreenCover(isPresented: $isShowingNowPlayingModal) {
             iOSNowPlayingView()
         }

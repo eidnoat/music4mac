@@ -51,39 +51,59 @@ public struct ArtistListView: View {
             }
         } detail: {
             if let selected = nav.selectedArtist {
-                let artist = storage.artists.first(where: { $0.id == selected.id }) ?? selected
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(artist.name)
-                                .font(.title2.bold())
-                            Text("\(artist.albumCount) albums · \(artist.songs.count) tracks")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Button {
-                            if !artist.songs.isEmpty {
-                                AudioPlayerEngine.shared.playSong(artist.songs[0], in: artist.songs)
-                            }
-                        } label: {
-                            Label("Play All", systemImage: "play.fill")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.appleMusicRed)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 16)
-                    
-                    Divider()
-                    
-                    SongListView(title: "", songs: artist.songs, allowSorting: false)
-                        .id("artist_songs_\(artist.id)_\(artist.songs.count)")
-                }
+                ArtistDetailView(artist: selected)
             } else {
                 Text("Select an artist from the left")
                     .foregroundColor(.secondary)
             }
         }
+    }
+}
+
+public struct ArtistDetailView: View {
+    public let artist: Artist
+    @ObservedObject var storage = StorageManager.shared
+    
+    public init(artist: Artist) {
+        self.artist = artist
+    }
+    
+    private var currentArtist: Artist {
+        storage.artists.first(where: { $0.id == artist.id }) ?? artist
+    }
+    
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(currentArtist.name)
+                        .font(.title2.bold())
+                    Text("\(currentArtist.albumCount) albums · \(currentArtist.songs.count) tracks")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                Button {
+                    if !currentArtist.songs.isEmpty {
+                        AudioPlayerEngine.shared.playSong(currentArtist.songs[0], in: currentArtist.songs)
+                    }
+                } label: {
+                    Label("Play All", systemImage: "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.appleMusicRed)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            
+            Divider()
+            
+            SongListView(title: "", songs: currentArtist.songs, allowSorting: false)
+                .id("artist_songs_\(currentArtist.id)_\(currentArtist.songs.count)")
+        }
+        .navigationTitle(currentArtist.name)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }
