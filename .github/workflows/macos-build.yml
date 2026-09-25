@@ -44,6 +44,16 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          body: |
+            ### 📦 Assets & Installation Guide
+
+            - **`music.zip` (macOS Application Bundle)**
+              - On macOS, a `.app` application is technically a bundle directory structure. It is packaged as `music.zip` to preserve macOS file permissions, extended attributes, and bundle integrity.
+              - **Installation**: Double-click `music.zip` (or let Safari auto-expand it) to get **`music.app`**. Drag `music.app` into your `/Applications` folder to start listening.
+
+            - **`music.ipa` (iOS & iPadOS Package)**
+              - Native universal build supporting both iPhone and iPad with adaptive layouts and multitasking.
+              - **Installation**: Install via AltStore, TrollStore, SideStore, Sideloadly, or any preferred iOS sideloading utility.
           files: |
             music.zip
         env:
