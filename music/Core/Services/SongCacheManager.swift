@@ -237,7 +237,29 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         
         let task: Task<Void, Never> = Task(priority: .utility) { [weak self] in
             guard let self = self else { return }
-            await self.cacheSong(song)
+            await self.cacheSong(song, isUserInitiated: false)
+        }
+        
+        lock.lock()
+        activeDownloadTasks[song.id] = task
+        lock.unlock()
+    }
+    
+    public func downloadSong(_ song: Song) {
+        guard isEnabled else { return }
+        guard let remoteId = song.remoteId, !remoteId.isEmpty else { return }
+        guard !isSongCached(id: song.id) else { return }
+        
+        lock.lock()
+        guard !downloadingSongIds.contains(song.id) else {
+            lock.unlock()
+            return
+        }
+        lock.unlock()
+        
+        let task: Task<Void, Never> = Task(priority: .utility) { [weak self] in
+            guard let self = self else { return }
+            await self.cacheSong(song, isUserInitiated: true)
         }
         
         lock.lock()
@@ -305,21 +327,25 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     
     // MARK: - Cache & Download
     
-    public func cacheSong(_ song: Song) async {
+    public func cacheSong(_ song: Song, isUserInitiated: Bool = true) async {
         let (canCache, streamUrl) = beginCaching(song: song)
         guard canCache, let streamUrl = streamUrl else { return }
         
         let songId = song.id
         let safeId = safeIdentifier(for: songId)
         
-        DispatchQueue.main.async { [weak self] in
-            self?.downloadingIds.insert(songId)
+        if isUserInitiated {
+            DispatchQueue.main.async { [weak self] in
+                self?.downloadingIds.insert(songId)
+            }
         }
         
         defer {
             endDownloading(songId: songId)
-            DispatchQueue.main.async { [weak self] in
-                self?.downloadingIds.remove(songId)
+            if isUserInitiated {
+                DispatchQueue.main.async { [weak self] in
+                    self?.downloadingIds.remove(songId)
+                }
             }
         }
         
@@ -361,7 +387,9 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
                 self.currentCacheSizeBytes = updatedSize
                 self.cachedTrackCount = updatedCount
                 self.cachedIds.insert(songId)
-                self.downloadingIds.remove(songId)
+                if isUserInitiated {
+                    self.downloadingIds.remove(songId)
+                }
             }
             
             evictOldestIfNeeded()

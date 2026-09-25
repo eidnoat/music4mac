@@ -202,10 +202,6 @@ public struct iPhoneMainView: View {
                                 Image(systemName: "speaker.wave.2.fill")
                                     .foregroundColor(.appleMusicRed)
                                     .font(.system(size: 13))
-                            } else if cacheManager.downloadingIds.contains(song.id) && !isCurrent {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                                    .scaleEffect(0.85)
                             } else {
                                 Text(song.formattedDuration)
                                     .font(.system(size: 13, design: .monospaced))
@@ -231,7 +227,7 @@ public struct iPhoneMainView: View {
                         }
                     } else {
                         Button {
-                            cacheManager.startAutoCache(for: song)
+                            cacheManager.downloadSong(song)
                         } label: {
                             Label("Cache", systemImage: "arrow.down.circle")
                         }

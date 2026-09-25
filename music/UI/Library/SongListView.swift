@@ -381,10 +381,6 @@ public struct SongListView: View {
                                 Image(systemName: "speaker.wave.2.fill")
                                     .foregroundColor(.appleMusicRed)
                                     .font(.system(size: 14))
-                            } else if cacheManager.downloadingIds.contains(song.id) && !isCurrent {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                                    .scaleEffect(0.85)
                             } else {
                                 Text(song.formattedDuration)
                                     .font(.system(size: 13, design: .monospaced))
@@ -410,7 +406,7 @@ public struct SongListView: View {
                         }
                     } else {
                         Button {
-                            cacheManager.startAutoCache(for: song)
+                            cacheManager.downloadSong(song)
                         } label: {
                             Label("Download", systemImage: "arrow.down.circle")
                         }
@@ -831,7 +827,7 @@ private struct SongTitleCellView: View {
     
     var body: some View {
         let isCached = cacheManager.cachedIds.contains(song.id)
-        let isDownloading = cacheManager.downloadingIds.contains(song.id) || (isPlaying && AudioPlayerEngine.shared.status == .loading)
+        let isDownloading = cacheManager.downloadingIds.contains(song.id)
         
         HStack(spacing: 6) {
             Text(song.title)

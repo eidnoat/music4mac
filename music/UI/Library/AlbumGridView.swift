@@ -357,10 +357,10 @@ public struct AlbumDetailView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                             .scaleEffect(0.85)
-                    } else if cacheManager.downloadingIds.contains(song.id) && !isCurrent {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .scaleEffect(0.85)
+                    } else if isPlaying {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .foregroundColor(.appleMusicRed)
+                            .font(.system(size: 13))
                     } else {
                         Text(song.formattedDuration)
                             .font(.system(size: 13, design: .monospaced))
