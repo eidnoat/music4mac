@@ -520,8 +520,7 @@ public struct iOSQueueSheet: View {
                         .foregroundColor(.secondary)
                         .padding()
                 } else {
-                    ForEach(0..<queue.queue.count, id: \.self) { index in
-                        let song = queue.queue[index]
+                    ForEach(Array(queue.queue.enumerated()), id: \.element.id) { index, song in
                         let isCurrent = (index == queue.currentIndex)
                         iOSQueueRowView(
                             index: index,
@@ -529,6 +528,9 @@ public struct iOSQueueSheet: View {
                             isCurrent: isCurrent,
                             onSelect: { queue.playQueueItem(at: index) }
                         )
+                    }
+                    .onDelete { indexSet in
+                        queue.remove(atOffsets: indexSet)
                     }
                 }
             }

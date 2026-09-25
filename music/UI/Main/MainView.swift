@@ -240,9 +240,7 @@ public struct QueueSideView: View {
                     }
                 }
                 .onDelete { indexSet in
-                    for idx in indexSet {
-                        queue.remove(at: idx)
-                    }
+                    queue.remove(atOffsets: indexSet)
                 }
                 .onMove { indices, newOffset in
                     queue.move(from: indices, to: newOffset)

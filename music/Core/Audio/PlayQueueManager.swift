@@ -98,6 +98,23 @@ public final class PlayQueueManager: ObservableObject {
         }
     }
     
+    public func remove(atOffsets offsets: IndexSet) {
+        let currentId = currentSong?.id
+        var newQueue = queue
+        for index in offsets.sorted(by: >) {
+            guard index >= 0 && index < newQueue.count else { continue }
+            newQueue.remove(at: index)
+        }
+        self.queue = newQueue
+        if let currentId = currentId, let newIdx = newQueue.firstIndex(where: { $0.id == currentId }) {
+            self.currentIndex = newIdx
+        } else if newQueue.isEmpty {
+            self.currentIndex = -1
+        } else if currentIndex >= newQueue.count {
+            self.currentIndex = newQueue.count - 1
+        }
+    }
+    
     public func move(from source: IndexSet, to destination: Int) {
         let currentSongId = currentSong?.id
         queue.move(fromOffsets: source, toOffset: destination)
