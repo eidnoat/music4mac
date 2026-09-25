@@ -356,10 +356,11 @@ public struct SongListView: View {
                                         .font(.system(size: 12))
                                         .foregroundColor(.secondary)
                                 } else if cacheManager.downloadingIds.contains(song.id) {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle())
-                                        .scaleEffect(0.65)
-                                        .frame(width: 14, height: 14)
+                                    DownloadProgressRingView(
+                                        progress: cacheManager.downloadProgress[song.id],
+                                        size: 13,
+                                        lineWidth: 1.6
+                                    )
                                 }
                             }
                             

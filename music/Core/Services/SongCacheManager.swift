@@ -55,6 +55,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     @Published public var cachedTrackCount: Int = 0
     @Published public var cachedIds: Set<String> = []
     @Published public var downloadingIds: Set<String> = []
+    @Published public var downloadProgress: [String: Double] = [:]
     
     private var cachedTracks: [String: CachedTrackInfo] = [:]
     private var downloadingSongIds: Set<String> = []
@@ -277,6 +278,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         
         DispatchQueue.main.async { [weak self] in
             self?.downloadingIds.remove(songId)
+            self?.downloadProgress.removeValue(forKey: songId)
         }
     }
     
@@ -336,18 +338,26 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         
         DispatchQueue.main.async { [weak self] in
             self?.downloadingIds.insert(songId)
+            self?.downloadProgress[songId] = 0.05
         }
         
         defer {
             endDownloading(songId: songId)
             DispatchQueue.main.async { [weak self] in
                 self?.downloadingIds.remove(songId)
+                self?.downloadProgress.removeValue(forKey: songId)
+            }
+        }
+        
+        let delegate = SongDownloadProgressDelegate { [weak self] progress in
+            DispatchQueue.main.async {
+                self?.downloadProgress[songId] = progress
             }
         }
         
         do {
             guard !Task.isCancelled else { return }
-            let (tempUrl, response) = try await downloadSession.download(from: streamUrl)
+            let (tempUrl, response) = try await downloadSession.download(from: streamUrl, delegate: delegate)
             guard !Task.isCancelled else {
                 try? FileManager.default.removeItem(at: tempUrl)
                 return
@@ -545,6 +555,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
             self.cachedTrackCount = 0
             self.cachedIds.removeAll()
             self.downloadingIds.removeAll()
+            self.downloadProgress.removeAll()
         }
     }
     
@@ -570,5 +581,29 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         } else {
             return String(format: "%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0))
         }
+    }
+}
+
+// MARK: - Download Progress Delegate
+private final class SongDownloadProgressDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+    private let onProgress: (Double) -> Void
+    private var lastReportedTime: TimeInterval = 0
+    
+    init(onProgress: @escaping (Double) -> Void) {
+        self.onProgress = onProgress
+    }
+    
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        guard totalBytesExpectedToWrite > 0 else { return }
+        let progress = min(max(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite), 0.0), 1.0)
+        let now = ProcessInfo.processInfo.systemUptime
+        if now - lastReportedTime >= 0.05 || progress >= 0.99 {
+            lastReportedTime = now
+            onProgress(progress)
+        }
+    }
+    
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        // Completion handled by async URLSession.download return
     }
 }
