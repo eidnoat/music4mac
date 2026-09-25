@@ -205,7 +205,7 @@ public struct iOSNowPlayingView: View {
                     Text("NOW PLAYING")
                         .font(.system(size: 10, weight: .bold))
                         .tracking(1)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.appleMusicRed)
                     if let song = player.currentSong {
                         Text(song.album)
                             .font(.system(size: 12))
@@ -270,7 +270,7 @@ public struct iOSNowPlayingView: View {
                 in: 0...max(progress.duration, 1),
                 thumbSize: 10,
                 trackHeight: 4,
-                activeColor: .primary,
+                activeColor: .appleMusicRed,
                 onEditingChanged: { editing in
                     isScrubbing = editing
                     if !editing {
@@ -334,7 +334,7 @@ public struct iOSNowPlayingView: View {
                 } else {
                     Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
                         .font(.system(size: 64))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.appleMusicRed)
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -379,7 +379,7 @@ public struct iOSNowPlayingView: View {
                 in: 0...1,
                 thumbSize: 10,
                 trackHeight: 4,
-                activeColor: .secondary
+                activeColor: .appleMusicRed
             )
             
             Image(systemName: "speaker.wave.3.fill")
@@ -414,6 +414,8 @@ public struct iOSNowPlayingView: View {
                     .font(.system(size: 20))
                     .foregroundColor(showQueue ? .appleMusicRed : .secondary)
                     .padding(8)
+                    .background(showQueue ? Color.appleMusicRed.opacity(0.15) : Color.clear)
+                    .clipShape(Circle())
             }
             .buttonStyle(.plain)
         }

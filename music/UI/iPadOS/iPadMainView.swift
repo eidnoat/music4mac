@@ -180,7 +180,7 @@ public struct iPadPlayerBar: View {
                         } else {
                             Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
                                 .font(.system(size: 34))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.appleMusicRed)
                         }
                     }
                     .buttonStyle(.plain)
@@ -219,7 +219,7 @@ public struct iPadPlayerBar: View {
                         in: 0...max(progress.duration, 1),
                         thumbSize: 10,
                         trackHeight: 3.5,
-                        activeColor: .primary,
+                        activeColor: .appleMusicRed,
                         onEditingChanged: { editing in
                             isScrubbing = editing
                             if !editing {
@@ -253,7 +253,7 @@ public struct iPadPlayerBar: View {
                     in: 0...1,
                     thumbSize: 10,
                     trackHeight: 3.5,
-                    activeColor: .secondary
+                    activeColor: .appleMusicRed
                 )
                 .frame(width: 90)
                 

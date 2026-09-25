@@ -28,13 +28,7 @@ public struct iPhoneMainView: View {
                         .navigationTitle("Library")
                         .toolbar {
                             ToolbarItem(placement: .principal) {
-                                Picker("Library View", selection: $librarySegment) {
-                                    Text("Tracks").tag(0)
-                                    Text("Albums").tag(1)
-                                    Text("Artists").tag(2)
-                                }
-                                .pickerStyle(.segmented)
-                                .frame(width: 250)
+                                LibrarySegmentPicker(selection: $librarySegment)
                             }
                             
                             ToolbarItem(placement: .navigationBarTrailing) {
@@ -355,6 +349,50 @@ public struct iPhoneMainView: View {
         .safeAreaInset(edge: .bottom) {
             Color.clear.frame(height: 70) // Prevent list content from being covered by mini player
         }
+    }
+}
+
+// MARK: - Library Segment Picker
+private struct LibrarySegmentPicker: View {
+    @Binding var selection: Int
+    @Namespace private var segmentAnimation
+    
+    private let segments = [
+        (0, "Tracks"),
+        (1, "Albums"),
+        (2, "Artists")
+    ]
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(segments, id: \.0) { tag, title in
+                Button {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                        selection = tag
+                    }
+                } label: {
+                    Text(title)
+                        .font(.system(size: 13, weight: selection == tag ? .semibold : .medium))
+                        .foregroundColor(selection == tag ? .white : .secondary)
+                        .padding(.vertical, 5)
+                        .padding(.horizontal, 14)
+                        .background {
+                            if selection == tag {
+                                Capsule()
+                                    .fill(Color.appleMusicRed)
+                                    .matchedGeometryEffect(id: "activeSegmentPill", in: segmentAnimation)
+                                    .shadow(color: Color.appleMusicRed.opacity(0.35), radius: 4, x: 0, y: 1.5)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(
+            Capsule()
+                .fill(Color.secondary.opacity(0.12))
+        )
     }
 }
 #endif
