@@ -36,6 +36,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     private var scrobbledCurrentSong = false
     private var isSeeking = false
     private var itemStatusObservation: NSKeyValueObservation?
+    private var timeControlObservation: NSKeyValueObservation?
     private var loadingTimeoutTask: Task<Void, Never>?
     private let playbackLoadingTimeout: TimeInterval = 12.0
     @Published public var errorMessage: String? = nil
@@ -87,6 +88,8 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
+        timeControlObservation?.invalidate()
+        timeControlObservation = nil
         self.errorMessage = nil
         
         self.isSeeking = false
@@ -198,6 +201,23 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
                 }
             }
             
+            timeControlObservation = self.player.observe(\.timeControlStatus, options: [.new, .initial]) { [weak self] player, _ in
+                DispatchQueue.main.async {
+                    guard let self = self, self.currentSong?.id == song.id else { return }
+                    if player.timeControlStatus == .playing {
+                        self.cancelLoadingTimeout()
+                        if self.status == .loading {
+                            self.status = .playing
+                            NowPlayingManager.shared.updateNowPlaying(
+                                song: song,
+                                playbackRate: 1.0,
+                                currentTime: CMTimeGetSeconds(player.currentTime())
+                            )
+                        }
+                    }
+                }
+            }
+            
             loadingTimeoutTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: UInt64(12 * 1_000_000_000))
                 guard !Task.isCancelled, let self = self else { return }
@@ -216,6 +236,8 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
+        timeControlObservation?.invalidate()
+        timeControlObservation = nil
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemPlaybackStalled, object: nil)
         
@@ -233,6 +255,8 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
+        timeControlObservation?.invalidate()
+        timeControlObservation = nil
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemPlaybackStalled, object: nil)
         
@@ -394,6 +418,14 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         let interval = CMTime(seconds: 0.25, preferredTimescale: 600)
         timeObserverToken = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
             guard let self = self else { return }
+            let seconds = CMTimeGetSeconds(time)
+            if !seconds.isNaN && seconds > 0 && self.status == .loading {
+                self.cancelLoadingTimeout()
+                self.status = .playing
+                if let song = self.currentSong {
+                    NowPlayingManager.shared.updateNowPlaying(song: song, playbackRate: 1.0, currentTime: seconds)
+                }
+            }
             guard self.status == .playing else { return }
             guard !self.isSeeking else { return }
             let seconds = CMTimeGetSeconds(time)
@@ -458,6 +490,8 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
+        timeControlObservation?.invalidate()
+        timeControlObservation = nil
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemPlaybackStalled, object: nil)
         player.pause()

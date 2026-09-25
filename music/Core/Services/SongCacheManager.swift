@@ -22,8 +22,8 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     
     private let downloadSession: URLSession = {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30.0
-        config.timeoutIntervalForResource = 600.0
+        config.timeoutIntervalForRequest = 15.0
+        config.timeoutIntervalForResource = 120.0
         config.urlCache = nil // Avoid polluting global URLCache with large media/artwork downloads
         return URLSession(configuration: config)
     }()
@@ -275,9 +275,9 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
             return (false, nil)
         }
         guard !downloadingSongIds.contains(song.id) else { return (false, nil) }
-        guard let streamUrl = NavidromeClient.shared.getStreamUrl(songId: remoteId) else { return (false, nil) }
+        guard let downloadUrl = NavidromeClient.shared.getDownloadUrl(songId: remoteId) ?? NavidromeClient.shared.getStreamUrl(songId: remoteId) else { return (false, nil) }
         downloadingSongIds.insert(song.id)
-        return (true, streamUrl)
+        return (true, downloadUrl)
     }
     
     private func endDownloading(songId: String) {

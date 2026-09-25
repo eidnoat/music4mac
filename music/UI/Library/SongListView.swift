@@ -381,7 +381,7 @@ public struct SongListView: View {
                                 Image(systemName: "speaker.wave.2.fill")
                                     .foregroundColor(.appleMusicRed)
                                     .font(.system(size: 14))
-                            } else if cacheManager.downloadingIds.contains(song.id) {
+                            } else if cacheManager.downloadingIds.contains(song.id) && !isCurrent {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle())
                                     .scaleEffect(0.85)

@@ -188,6 +188,17 @@ public final class NavidromeClient: ObservableObject {
         return components?.url
     }
     
+    public func getDownloadUrl(songId: String) -> URL? {
+        guard !songId.isEmpty, !config.serverUrl.isEmpty else { return nil }
+        var components = URLComponents(string: "\(cleanBaseUrl())/rest/download.view")
+        var items: [URLQueryItem] = [URLQueryItem(name: "id", value: songId)]
+        for (k, v) in buildAuthParams() {
+            items.append(URLQueryItem(name: k, value: v))
+        }
+        components?.queryItems = items
+        return components?.url
+    }
+    
     public func getLyrics(songId: String) async throws -> String? {
         if let resp = try? await request(endpoint: "/rest/getLyricsBySongId.view", extraParams: ["id": songId]),
            let lyricsList = (resp["lyricsList"] as? [String: Any])?["structuredLyrics"] as? [[String: Any]],

@@ -357,7 +357,7 @@ public struct AlbumDetailView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                             .scaleEffect(0.85)
-                    } else if cacheManager.downloadingIds.contains(song.id) && !isPlaying {
+                    } else if cacheManager.downloadingIds.contains(song.id) && !isCurrent {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                             .scaleEffect(0.85)

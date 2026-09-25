@@ -73,7 +73,7 @@ public struct iPhoneMainView: View {
             }
             .padding(.bottom, 54) // Align right above standard TabBar
         }
-        .sheet(isPresented: $isShowingNowPlaying) {
+        .fullScreenCover(isPresented: $isShowingNowPlaying) {
             iOSNowPlayingView()
         }
     }
@@ -202,7 +202,7 @@ public struct iPhoneMainView: View {
                                 Image(systemName: "speaker.wave.2.fill")
                                     .foregroundColor(.appleMusicRed)
                                     .font(.system(size: 13))
-                            } else if cacheManager.downloadingIds.contains(song.id) {
+                            } else if cacheManager.downloadingIds.contains(song.id) && !isCurrent {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle())
                                     .scaleEffect(0.85)
