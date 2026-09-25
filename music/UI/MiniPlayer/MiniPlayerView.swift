@@ -51,7 +51,7 @@ public struct MiniPlayerView: View {
                         } label: {
                             Image(systemName: isPinned ? "pin.fill" : "pin")
                                 .font(.system(size: 10))
-                                .foregroundColor(isPinned ? .accentColor : .secondary)
+                                .foregroundColor(isPinned ? .appleMusicRed : .secondary)
                         }
                         .buttonStyle(.plain)
                         
@@ -136,7 +136,7 @@ public struct MiniPlayerView: View {
                 // Progress bar
                 ProgressView(value: progress.currentTime, total: max(progress.duration, 1.0))
                     .progressViewStyle(.linear)
-                    .tint(.accentColor)
+                    .tint(.appleMusicRed)
                     .padding(.horizontal, 12)
                     .padding(.bottom, 6)
             }

@@ -620,7 +620,7 @@ public struct SongListView: View {
     private func indexCell(for song: Song) -> some View {
         if currentPlayingSongId == song.id {
             Image(systemName: isAudioPlaying ? "speaker.wave.2.fill" : "speaker.fill")
-                .foregroundColor(.accentColor)
+                .foregroundColor(.appleMusicRed)
                 .font(.system(size: 11))
         } else if let idx = songIndexMap[song.id] {
             Text("\(idx)")
@@ -791,7 +791,7 @@ private struct ClickableTableCell: View {
         Button(action: action) {
             Text(text)
                 .font(.system(size: 12))
-                .foregroundColor(isHovered ? .accentColor : .secondary)
+                .foregroundColor(isHovered ? .appleMusicRed : .secondary)
                 .underline(isHovered)
                 .lineLimit(1)
         }

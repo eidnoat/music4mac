@@ -196,25 +196,25 @@ public struct QueueSideView: View {
                             HStack(spacing: 5) {
                                 Text(song.title)
                                     .font(.system(size: 12, weight: index == queue.currentIndex ? .bold : .regular))
-                                    .foregroundColor(index == queue.currentIndex ? .accentColor : .primary)
+                                    .foregroundColor(index == queue.currentIndex ? .appleMusicRed : .primary)
                                     .lineLimit(1)
                                 
                                 if cacheManager.downloadingIds.contains(song.id) {
                                     Circle()
                                         .trim(from: 0.15, to: 0.85)
-                                        .stroke(index == queue.currentIndex ? Color.accentColor : Color.secondary, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                                        .stroke(index == queue.currentIndex ? Color.appleMusicRed : Color.secondary, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
                                         .frame(width: 9, height: 9)
                                         .help("Caching audio...")
                                 } else if cacheManager.cachedIds.contains(song.id) {
                                     Image(systemName: "arrow.down.circle.fill")
-                                        .foregroundColor(index == queue.currentIndex ? .accentColor : .secondary)
+                                        .foregroundColor(index == queue.currentIndex ? .appleMusicRed : .secondary)
                                         .font(.system(size: 9))
                                         .help("Cached locally")
                                 }
                                 
                                 if index == queue.currentIndex {
                                     Image(systemName: isPlaying ? "speaker.wave.2.fill" : "speaker.fill")
-                                        .foregroundColor(.accentColor)
+                                        .foregroundColor(.appleMusicRed)
                                         .font(.system(size: 10))
                                 }
                             }

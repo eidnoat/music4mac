@@ -90,7 +90,7 @@ public struct SettingsView: View {
                                     .font(.system(size: 13, weight: .medium))
                                 Text("\(cacheManager.maxSizeGB) GB")
                                     .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(.accentColor)
+                                    .foregroundColor(.appleMusicRed)
                                 
                                 Spacer()
                                 

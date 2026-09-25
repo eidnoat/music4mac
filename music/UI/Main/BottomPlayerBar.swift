@@ -45,6 +45,8 @@ public struct BottomPlayerBar: View {
         .padding(.vertical, 10)
         .background(.ultraThinMaterial)
         .overlay(Divider(), alignment: .top)
+        .tint(Color.appleMusicRed)
+        .accentColor(Color.appleMusicRed)
     }
     
     // MARK: - Track Info
@@ -100,7 +102,7 @@ public struct BottomPlayerBar: View {
             } label: {
                 Image(systemName: queue.playMode.iconName)
                     .font(.system(size: 13))
-                    .foregroundColor(queue.playMode == .sequence ? .secondary : .accentColor)
+                    .foregroundColor(queue.playMode == .sequence ? .secondary : .appleMusicRed)
             }
             .buttonStyle(.plain)
             .help(queue.playMode.title)
@@ -159,6 +161,7 @@ public struct BottomPlayerBar: View {
             .buttonStyle(.plain)
             
             Slider(value: $player.volume, in: 0...1)
+                .tint(.appleMusicRed)
                 .controlSize(.mini)
                 .frame(width: 80)
         }
@@ -175,7 +178,7 @@ public struct BottomPlayerBar: View {
             } label: {
                 Image(systemName: "quote.bubble.fill")
                     .font(.system(size: 14))
-                    .foregroundColor(showLyrics ? .accentColor : .secondary)
+                    .foregroundColor(showLyrics ? .appleMusicRed : .secondary)
             }
             .buttonStyle(.plain)
             .help("Lyrics")
@@ -188,7 +191,7 @@ public struct BottomPlayerBar: View {
             } label: {
                 Image(systemName: "list.bullet")
                     .font(.system(size: 14))
-                    .foregroundColor(showQueue ? .accentColor : .secondary)
+                    .foregroundColor(showQueue ? .appleMusicRed : .secondary)
             }
             .buttonStyle(.plain)
             .help("Queue")
@@ -266,7 +269,7 @@ public struct PlaybackProgressBar: View {
                 
                 // Played Progress Bar
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.accentColor)
+                    .fill(Color.appleMusicRed)
                     .frame(width: max(width * CGFloat(progress), 0), height: isHovering || isDragging ? 5 : 3.5)
                 
                 // Scrub Knob

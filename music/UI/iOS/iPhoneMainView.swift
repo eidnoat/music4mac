@@ -253,7 +253,7 @@ public struct iPhoneMainView: View {
                         } label: {
                             Label("Cache", systemImage: "arrow.down.circle")
                         }
-                        .tint(.accentColor)
+                        .tint(.appleMusicRed)
                     }
                     
                     Button {

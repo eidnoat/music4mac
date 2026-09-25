@@ -76,7 +76,7 @@ public struct AlbumCard: View {
                     } label: {
                         Image(systemName: "play.circle.fill")
                             .font(.system(size: 36))
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(.appleMusicRed)
                             .background(Circle().fill(.black.opacity(0.4)))
                     }
                     .buttonStyle(.plain)
