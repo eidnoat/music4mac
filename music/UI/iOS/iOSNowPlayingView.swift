@@ -16,61 +16,129 @@ public struct iOSNowPlayingView: View {
     
     public var body: some View {
         GeometryReader { geometry in
+            let isLandscape = geometry.size.width > geometry.size.height && geometry.size.width >= 600
+            
             ZStack {
                 // Background subtle blur/tint
                 Color.platformWindowBackground.ignoresSafeArea()
                 
-                VStack(spacing: 0) {
-                    // Top Bar: Drag indicator & dismiss chevron
-                    headerBar
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
-                    
-                    Spacer(minLength: 8)
-                    
-                    // Main Artwork or Lyrics
-                    if showLyrics {
-                        LyricsView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .transition(.opacity)
-                    } else {
-                        artworkView(maxSize: min(geometry.size.width - 56, geometry.size.height * 0.45, 380))
-                            .transition(.scale(scale: 0.95).combined(with: .opacity))
-                    }
-                    
-                    Spacer(minLength: 12)
-                    
-                    // Metadata & Favorite
-                    metadataView
-                        .padding(.horizontal, 28)
-                    
-                    // Scrubber Bar
-                    scrubberView
-                        .padding(.horizontal, 28)
-                        .padding(.top, 12)
-                    
-                    // Primary Controls (Shuffle, Prev, Play/Pause, Next, Repeat)
-                    controlsView
-                        .padding(.horizontal, 24)
-                        .padding(.top, 16)
-                    
-                    // Volume Slider
-                    volumeView
-                        .padding(.horizontal, 28)
-                        .padding(.top, 16)
-                    
-                    // Bottom Accessories (Lyrics toggle, Queue toggle)
-                    bottomAccessories
-                        .padding(.horizontal, 32)
-                        .padding(.top, 16)
-                        .padding(.bottom, 20)
+                if isLandscape {
+                    landscapeLayout(geometry: geometry)
+                } else {
+                    portraitLayout(geometry: geometry)
                 }
-                .frame(maxWidth: 520)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .sheet(isPresented: $showQueue) {
             iOSQueueSheet()
+        }
+    }
+    
+    // MARK: - Portrait Layout
+    private func portraitLayout(geometry: GeometryProxy) -> some View {
+        VStack(spacing: 0) {
+            // Top Bar: Drag indicator & dismiss chevron
+            headerBar
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+            
+            Spacer(minLength: 8)
+            
+            // Main Artwork or Lyrics
+            if showLyrics {
+                LyricsView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity)
+            } else {
+                artworkView(maxSize: min(geometry.size.width - 56, geometry.size.height * 0.45, 420))
+                    .transition(.scale(scale: 0.95).combined(with: .opacity))
+            }
+            
+            Spacer(minLength: 12)
+            
+            // Metadata
+            metadataView
+                .padding(.horizontal, 28)
+            
+            // Scrubber Bar
+            scrubberView
+                .padding(.horizontal, 28)
+                .padding(.top, 12)
+            
+            // Primary Controls (Shuffle, Prev, Play/Pause, Next, Repeat)
+            controlsView
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+            
+            // Volume Slider
+            volumeView
+                .padding(.horizontal, 28)
+                .padding(.top, 16)
+            
+            // Bottom Accessories (Lyrics toggle, Queue toggle)
+            bottomAccessories
+                .padding(.horizontal, 32)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
+        }
+        .frame(maxWidth: 560)
+    }
+    
+    // MARK: - Landscape Layout (iPad / Wide screen)
+    private func landscapeLayout(geometry: GeometryProxy) -> some View {
+        VStack(spacing: 0) {
+            headerBar
+                .padding(.horizontal, 32)
+                .padding(.top, 16)
+            
+            HStack(spacing: 48) {
+                // Left: Large Artwork or Real-time Lyrics
+                VStack {
+                    Spacer()
+                    if showLyrics {
+                        LyricsView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .transition(.opacity)
+                    } else {
+                        let artSize = min(geometry.size.height * 0.65, geometry.size.width * 0.42, 480)
+                        artworkView(maxSize: artSize)
+                            .transition(.scale(scale: 0.95).combined(with: .opacity))
+                    }
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                // Right: Playback Controls & Info
+                VStack(spacing: 0) {
+                    Spacer()
+                    
+                    metadataView
+                        .padding(.horizontal, 16)
+                    
+                    scrubberView
+                        .padding(.horizontal, 16)
+                        .padding(.top, 20)
+                    
+                    controlsView
+                        .padding(.horizontal, 8)
+                        .padding(.top, 24)
+                    
+                    volumeView
+                        .padding(.horizontal, 16)
+                        .padding(.top, 24)
+                    
+                    bottomAccessories
+                        .padding(.horizontal, 20)
+                        .padding(.top, 24)
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: min(geometry.size.width * 0.46, 500))
+            }
+            .padding(.horizontal, 32)
+            .padding(.bottom, 20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
     

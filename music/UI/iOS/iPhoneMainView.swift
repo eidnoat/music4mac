@@ -96,88 +96,26 @@ public struct iPhoneMainView: View {
     private var sortMenu: some View {
         Menu {
             if librarySegment == 0 {
-                Section("Sort By") {
+                Picker("Sort By", selection: $songSortOption) {
                     ForEach(SongSortOption.allCases) { option in
-                        Button {
-                            songSortOption = option
-                        } label: {
-                            HStack {
-                                Text(option.title)
-                                if songSortOption == option {
-                                    Spacer()
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
+                        Text(option.title).tag(option)
                     }
                 }
                 
-                Section {
-                    Button {
-                        songSortAscending = true
-                    } label: {
-                        HStack {
-                            Text("Ascending")
-                            if songSortAscending {
-                                Spacer()
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                    
-                    Button {
-                        songSortAscending = false
-                    } label: {
-                        HStack {
-                            Text("Descending")
-                            if !songSortAscending {
-                                Spacer()
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
+                Picker("Order", selection: $songSortAscending) {
+                    Text("Ascending").tag(true)
+                    Text("Descending").tag(false)
                 }
             } else {
-                Section("Sort By") {
+                Picker("Sort By", selection: $albumSortOption) {
                     ForEach(AlbumSortOption.allCases) { option in
-                        Button {
-                            albumSortOption = option
-                        } label: {
-                            HStack {
-                                Text(option.title)
-                                if albumSortOption == option {
-                                    Spacer()
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
+                        Text(option.title).tag(option)
                     }
                 }
                 
-                Section {
-                    Button {
-                        albumSortAscending = true
-                    } label: {
-                        HStack {
-                            Text("Ascending")
-                            if albumSortAscending {
-                                Spacer()
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                    
-                    Button {
-                        albumSortAscending = false
-                    } label: {
-                        HStack {
-                            Text("Descending")
-                            if !albumSortAscending {
-                                Spacer()
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
+                Picker("Order", selection: $albumSortAscending) {
+                    Text("Ascending").tag(true)
+                    Text("Descending").tag(false)
                 }
             }
         } label: {

@@ -64,7 +64,7 @@ public struct iPadMainView: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $nav.searchText, prompt: "Search music")
         }
-        .sheet(isPresented: $isShowingNowPlayingModal) {
+        .fullScreenCover(isPresented: $isShowingNowPlayingModal) {
             iOSNowPlayingView()
         }
     }

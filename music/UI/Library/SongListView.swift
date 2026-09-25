@@ -260,116 +260,21 @@ public struct SongListView: View {
             if allowSorting {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Section("Sort By") {
-                            Button {
-                                setSortKeyPath(keyPath: \Song.title)
-                            } label: {
-                                HStack {
-                                    Text("Title")
-                                    if isSelectedSort(keyPath: \Song.title) {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            
-                            Button {
-                                setSortKeyPath(keyPath: \Song.artist)
-                            } label: {
-                                HStack {
-                                    Text("Artist")
-                                    if isSelectedSort(keyPath: \Song.artist) {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            
-                            Button {
-                                setSortKeyPath(keyPath: \Song.album)
-                            } label: {
-                                HStack {
-                                    Text("Album")
-                                    if isSelectedSort(keyPath: \Song.album) {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            
-                            Button {
-                                setSortKeyPath(keyPath: \Song.duration)
-                            } label: {
-                                HStack {
-                                    Text("Duration")
-                                    if isSelectedSort(keyPath: \Song.duration) {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            
-                            Button {
-                                setSortKeyPath(keyPath: \Song.playCount)
-                            } label: {
-                                HStack {
-                                    Text("Plays")
-                                    if isSelectedSort(keyPath: \Song.playCount) {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            
-                            Button {
-                                setSortKeyPath(keyPath: \Song.dateAddedComparable)
-                            } label: {
-                                HStack {
-                                    Text("Date Added")
-                                    if isSelectedSort(keyPath: \Song.dateAddedComparable) {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            
-                            Button {
-                                setSortKeyPath(keyPath: \Song.lastPlayedComparable)
-                            } label: {
-                                HStack {
-                                    Text("Last Played")
-                                    if isSelectedSort(keyPath: \Song.lastPlayedComparable) {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
+                        Picker("Sort By", selection: Binding(
+                            get: { currentSortField },
+                            set: { updateSort(field: $0, ascending: isSortAscending) }
+                        )) {
+                            ForEach(SongListSortField.allCases) { field in
+                                Text(field.rawValue).tag(field)
                             }
                         }
                         
-                        Section {
-                            Button {
-                                setSortAscending(true)
-                            } label: {
-                                HStack {
-                                    Text("Ascending")
-                                    if isSortAscending {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            
-                            Button {
-                                setSortAscending(false)
-                            } label: {
-                                HStack {
-                                    Text("Descending")
-                                    if !isSortAscending {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
+                        Picker("Order", selection: Binding(
+                            get: { isSortAscending },
+                            set: { updateSort(field: currentSortField, ascending: $0) }
+                        )) {
+                            Text("Ascending").tag(true)
+                            Text("Descending").tag(false)
                         }
                     } label: {
                         Image(systemName: "arrow.up.arrow.down.circle")
@@ -382,26 +287,44 @@ public struct SongListView: View {
     }
     
     #if os(iOS)
+    private enum SongListSortField: String, CaseIterable, Identifiable {
+        case title = "Title"
+        case artist = "Artist"
+        case album = "Album"
+        case duration = "Duration"
+        case playCount = "Plays"
+        case dateAdded = "Date Added"
+        case lastPlayed = "Last Played"
+        
+        var id: String { rawValue }
+    }
+    
+    private var currentSortField: SongListSortField {
+        guard let kp = sortOrder.first?.keyPath else { return .title }
+        if kp == \Song.title { return .title }
+        if kp == \Song.artist { return .artist }
+        if kp == \Song.album { return .album }
+        if kp == \Song.duration { return .duration }
+        if kp == \Song.playCount { return .playCount }
+        if kp == \Song.dateAddedComparable { return .dateAdded }
+        if kp == \Song.lastPlayedComparable { return .lastPlayed }
+        return .title
+    }
+    
     private var isSortAscending: Bool {
         sortOrder.first?.order == .forward
     }
     
-    private func isSelectedSort<T: Comparable>(keyPath: KeyPath<Song, T>) -> Bool {
-        sortOrder.first?.keyPath == keyPath
-    }
-    
-    private func setSortKeyPath<T: Comparable>(keyPath: KeyPath<Song, T>) {
-        let order = sortOrder.first?.order ?? .forward
-        self.sortOrder = [KeyPathComparator(keyPath, order: order)]
-    }
-    
-    private func setSortAscending(_ ascending: Bool) {
+    private func updateSort(field: SongListSortField, ascending: Bool) {
         let order: SortOrder = ascending ? .forward : .reverse
-        if var current = sortOrder.first {
-            current.order = order
-            self.sortOrder = [current]
-        } else {
-            self.sortOrder = [KeyPathComparator(\Song.title, order: order)]
+        switch field {
+        case .title: self.sortOrder = [KeyPathComparator(\Song.title, order: order)]
+        case .artist: self.sortOrder = [KeyPathComparator(\Song.artist, order: order)]
+        case .album: self.sortOrder = [KeyPathComparator(\Song.album, order: order)]
+        case .duration: self.sortOrder = [KeyPathComparator(\Song.duration, order: order)]
+        case .playCount: self.sortOrder = [KeyPathComparator(\Song.playCount, order: order)]
+        case .dateAdded: self.sortOrder = [KeyPathComparator(\Song.dateAddedComparable, order: order)]
+        case .lastPlayed: self.sortOrder = [KeyPathComparator(\Song.lastPlayedComparable, order: order)]
         }
     }
     
