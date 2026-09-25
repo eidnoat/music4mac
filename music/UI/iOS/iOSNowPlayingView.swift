@@ -46,20 +46,33 @@ public struct iOSNowPlayingView: View {
             .shadow(color: .black.opacity(dragOffset > 0 ? 0.3 : 0), radius: 25, x: 0, y: -6)
             .offset(y: max(0, dragOffset))
             .simultaneousGesture(
-                DragGesture(minimumDistance: 15)
+                DragGesture(minimumDistance: 4)
                     .onChanged { value in
                         guard !isScrubbing else { return }
                         // Respond to downward pull where vertical motion dominates
-                        if value.translation.height > 0 && value.translation.height > abs(value.translation.width) * 1.2 {
+                        if value.translation.height > 0 && value.translation.height > abs(value.translation.width) * 0.8 {
                             dragOffset = value.translation.height
+                        } else if value.translation.height < 0 && dragOffset > 0 {
+                            dragOffset = max(0, dragOffset + value.translation.height)
                         }
                     }
                     .onEnded { value in
                         guard !isScrubbing else { return }
-                        if dragOffset > 100 || value.predictedEndTranslation.height > 200 {
-                            closeView()
+                        let velocity = value.predictedEndTranslation.height - value.translation.height
+                        let isFlick = value.translation.height > 40 && velocity > 120
+                        let isDraggedPastThreshold = dragOffset > 130 || value.predictedEndTranslation.height > 250
+                        
+                        if isFlick || isDraggedPastThreshold {
+                            let targetHeight = geometry.size.height > 0 ? geometry.size.height : 900
+                            withAnimation(.easeOut(duration: 0.22)) {
+                                dragOffset = targetHeight
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                                closeView()
+                            }
                         } else {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                            // Apple-native bouncy interactive spring rebound
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.68)) {
                                 dragOffset = 0
                             }
                         }
@@ -215,25 +228,18 @@ public struct iOSNowPlayingView: View {
     
     // MARK: - Header
     private var headerBar: some View {
-        ZStack {
-            Capsule()
-                .fill(Color.secondary.opacity(0.35))
-                .frame(width: 38, height: 5)
-                .contentShape(Rectangle().inset(by: -12))
-            
-            HStack {
-                Button {
-                    closeView()
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.secondary)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                
-                Spacer()
+        HStack {
+            Button {
+                closeView()
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
+            
+            Spacer()
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)

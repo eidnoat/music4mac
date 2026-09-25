@@ -13,7 +13,7 @@ public struct MainView: View {
     
     public init() {}
     
-    private let sidePanelWidth: CGFloat = 320
+    private let sidePanelWidth: CGFloat = 260
     
     public var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
