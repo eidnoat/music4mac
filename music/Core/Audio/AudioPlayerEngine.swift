@@ -428,7 +428,6 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
             }
             guard self.status == .playing else { return }
             guard !self.isSeeking else { return }
-            let seconds = CMTimeGetSeconds(time)
             if !seconds.isNaN && seconds >= 0 {
                 self.currentTime = seconds
             }
