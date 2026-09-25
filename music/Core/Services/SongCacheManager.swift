@@ -237,7 +237,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         
         let task: Task<Void, Never> = Task(priority: .utility) { [weak self] in
             guard let self = self else { return }
-            await self.cacheSong(song, isUserInitiated: false)
+            await self.cacheSong(song)
         }
         
         lock.lock()
@@ -259,7 +259,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         
         let task: Task<Void, Never> = Task(priority: .utility) { [weak self] in
             guard let self = self else { return }
-            await self.cacheSong(song, isUserInitiated: true)
+            await self.cacheSong(song)
         }
         
         lock.lock()
@@ -327,25 +327,21 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     
     // MARK: - Cache & Download
     
-    public func cacheSong(_ song: Song, isUserInitiated: Bool = true) async {
+    public func cacheSong(_ song: Song) async {
         let (canCache, streamUrl) = beginCaching(song: song)
         guard canCache, let streamUrl = streamUrl else { return }
         
         let songId = song.id
         let safeId = safeIdentifier(for: songId)
         
-        if isUserInitiated {
-            DispatchQueue.main.async { [weak self] in
-                self?.downloadingIds.insert(songId)
-            }
+        DispatchQueue.main.async { [weak self] in
+            self?.downloadingIds.insert(songId)
         }
         
         defer {
             endDownloading(songId: songId)
-            if isUserInitiated {
-                DispatchQueue.main.async { [weak self] in
-                    self?.downloadingIds.remove(songId)
-                }
+            DispatchQueue.main.async { [weak self] in
+                self?.downloadingIds.remove(songId)
             }
         }
         
@@ -387,9 +383,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
                 self.currentCacheSizeBytes = updatedSize
                 self.cachedTrackCount = updatedCount
                 self.cachedIds.insert(songId)
-                if isUserInitiated {
-                    self.downloadingIds.remove(songId)
-                }
+                self.downloadingIds.remove(songId)
             }
             
             evictOldestIfNeeded()

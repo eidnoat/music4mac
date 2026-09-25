@@ -33,50 +33,65 @@ public struct iPadMainView: View {
     public init() {}
     
     public var body: some View {
-        NavigationSplitView {
-            List(iPadSidebarItem.allCases, selection: $selectedItem) { item in
-                NavigationLink(value: item) {
-                    Label {
-                        Text(item.rawValue)
-                            .font(.system(size: 15, weight: selectedItem == item ? .semibold : .medium))
-                            .foregroundColor(selectedItem == item ? .appleMusicRed : .primary)
-                    } icon: {
-                        Image(systemName: item.icon)
-                            .foregroundColor(.appleMusicRed)
+        ZStack {
+            NavigationSplitView {
+                List(iPadSidebarItem.allCases, selection: $selectedItem) { item in
+                    NavigationLink(value: item) {
+                        Label {
+                            Text(item.rawValue)
+                                .font(.system(size: 15, weight: selectedItem == item ? .semibold : .medium))
+                                .foregroundColor(selectedItem == item ? .appleMusicRed : .primary)
+                        } icon: {
+                            Image(systemName: item.icon)
+                                .foregroundColor(.appleMusicRed)
+                        }
                     }
                 }
+                .listStyle(.sidebar)
+                .tint(Color.appleMusicRed)
+                .accentColor(Color.appleMusicRed)
+                .navigationTitle("music")
+            } detail: {
+                VStack(spacing: 0) {
+                    // Main Content
+                    detailContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    
+                    Divider()
+                    
+                    // Wide iPad Player Bar
+                    iPadPlayerBar(
+                        onTapNowPlaying: {
+                            withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
+                                isShowingNowPlayingModal = true
+                            }
+                        },
+                        onToggleLyrics: {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                showSideBySideLyrics.toggle()
+                            }
+                        },
+                        isLyricsActive: showSideBySideLyrics
+                    )
+                }
+                .navigationTitle(selectedItem?.rawValue ?? "Tracks")
+                .navigationBarTitleDisplayMode(.inline)
+                .searchable(text: $nav.searchText, prompt: "Search music")
             }
-            .listStyle(.sidebar)
             .tint(Color.appleMusicRed)
             .accentColor(Color.appleMusicRed)
-            .navigationTitle("music")
-        } detail: {
-            VStack(spacing: 0) {
-                // Main Content
-                detailContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                
-                Divider()
-                
-                // Wide iPad Player Bar
-                iPadPlayerBar(
-                    onTapNowPlaying: { isShowingNowPlayingModal = true },
-                    onToggleLyrics: {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            showSideBySideLyrics.toggle()
-                        }
-                    },
-                    isLyricsActive: showSideBySideLyrics
-                )
+            
+            // Full-screen Now Playing Overlay preserving underlying iPad UI visibility during swipe down
+            if isShowingNowPlayingModal {
+                iOSNowPlayingView(onDismiss: {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        isShowingNowPlayingModal = false
+                    }
+                })
+                .ignoresSafeArea()
+                .transition(.move(edge: .bottom))
+                .zIndex(100)
             }
-            .navigationTitle(selectedItem?.rawValue ?? "Tracks")
-            .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $nav.searchText, prompt: "Search music")
-        }
-        .tint(Color.appleMusicRed)
-        .accentColor(Color.appleMusicRed)
-        .fullScreenCover(isPresented: $isShowingNowPlayingModal) {
-            iOSNowPlayingView()
         }
     }
     

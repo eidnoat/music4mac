@@ -71,12 +71,23 @@ public struct iPhoneMainView: View {
             
             // Floating Mini Player docked above the tab bar
             iOSMiniPlayerBar {
-                isShowingNowPlaying = true
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
+                    isShowingNowPlaying = true
+                }
             }
             .padding(.bottom, 54) // Align right above standard TabBar
-        }
-        .fullScreenCover(isPresented: $isShowingNowPlaying) {
-            iOSNowPlayingView()
+            
+            // Full-screen Now Playing Overlay preserving underlying view visibility during swipe down
+            if isShowingNowPlaying {
+                iOSNowPlayingView(onDismiss: {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        isShowingNowPlaying = false
+                    }
+                })
+                .ignoresSafeArea()
+                .transition(.move(edge: .bottom))
+                .zIndex(100)
+            }
         }
     }
     

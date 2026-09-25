@@ -7,13 +7,25 @@ public struct iOSNowPlayingView: View {
     @ObservedObject var progress = AudioProgressTracker.shared
     
     @Environment(\.dismiss) private var dismiss
+    public var onDismiss: (() -> Void)? = nil
+    
     @State private var showLyrics: Bool = false
     @State private var showQueue: Bool = false
     @State private var isScrubbing: Bool = false
     @State private var scrubTime: TimeInterval = 0
     @State private var dragOffset: CGFloat = 0
     
-    public init() {}
+    public init(onDismiss: (() -> Void)? = nil) {
+        self.onDismiss = onDismiss
+    }
+    
+    private func closeView() {
+        if let onDismiss = onDismiss {
+            onDismiss()
+        } else {
+            dismiss()
+        }
+    }
     
     public var body: some View {
         GeometryReader { geometry in
@@ -30,6 +42,7 @@ public struct iOSNowPlayingView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .shadow(color: .black.opacity(dragOffset > 0 ? 0.3 : 0), radius: 25, x: 0, y: -6)
             .offset(y: max(0, dragOffset))
             .simultaneousGesture(
                 DragGesture(minimumDistance: 15)
@@ -43,12 +56,7 @@ public struct iOSNowPlayingView: View {
                     .onEnded { value in
                         guard !isScrubbing else { return }
                         if dragOffset > 100 || value.predictedEndTranslation.height > 200 {
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                dragOffset = geometry.size.height
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                dismiss()
-                            }
+                            closeView()
                         } else {
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                                 dragOffset = 0
@@ -71,7 +79,7 @@ public struct iOSNowPlayingView: View {
             // Top Bar: Drag indicator & dismiss chevron
             headerBar
                 .padding(.horizontal, 20)
-                .padding(.top, 12)
+                .padding(.top, max(geometry.safeAreaInsets.top, 12))
             
             Spacer(minLength: 8)
             
@@ -110,7 +118,7 @@ public struct iOSNowPlayingView: View {
             bottomAccessories
                 .padding(.horizontal, 32)
                 .padding(.top, 16)
-                .padding(.bottom, 20)
+                .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20))
         }
         .frame(maxWidth: 560)
     }
@@ -120,7 +128,7 @@ public struct iOSNowPlayingView: View {
         VStack(spacing: 0) {
             headerBar
                 .padding(.horizontal, 32)
-                .padding(.top, 16)
+                .padding(.top, max(geometry.safeAreaInsets.top, 16))
             
             HStack(spacing: 48) {
                 // Left: Large Artwork or Real-time Lyrics
@@ -167,7 +175,7 @@ public struct iOSNowPlayingView: View {
                 .frame(maxWidth: min(geometry.size.width * 0.46, 500))
             }
             .padding(.horizontal, 32)
-            .padding(.bottom, 20)
+            .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
@@ -183,7 +191,7 @@ public struct iOSNowPlayingView: View {
             
             HStack {
                 Button {
-                    dismiss()
+                    closeView()
                 } label: {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 18, weight: .semibold))
