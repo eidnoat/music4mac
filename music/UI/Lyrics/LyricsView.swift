@@ -7,17 +7,6 @@ public struct LyricsView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Lyrics")
-                    .font(.subheadline.bold())
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            
-            Divider()
-            
             if lyrics.lines.isEmpty {
                 VStack {
                     Spacer()
