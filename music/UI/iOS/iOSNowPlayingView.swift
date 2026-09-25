@@ -15,6 +15,7 @@ public struct iOSNowPlayingView: View {
     @State private var isScrubbing: Bool = false
     @State private var scrubTime: TimeInterval = 0
     @State private var dragOffset: CGFloat = 0
+    @State private var isDismissing: Bool = false
     
     public init(onDismiss: (() -> Void)? = nil) {
         self.onDismiss = onDismiss
@@ -48,7 +49,7 @@ public struct iOSNowPlayingView: View {
             .simultaneousGesture(
                 DragGesture(minimumDistance: 4)
                     .onChanged { value in
-                        guard !isScrubbing else { return }
+                        guard !isScrubbing && !isDismissing else { return }
                         // Respond to downward pull where vertical motion dominates
                         if value.translation.height > 0 && value.translation.height > abs(value.translation.width) * 0.8 {
                             dragOffset = value.translation.height
@@ -57,13 +58,13 @@ public struct iOSNowPlayingView: View {
                         }
                     }
                     .onEnded { value in
-                        guard !isScrubbing else { return }
+                        guard !isScrubbing && !isDismissing else { return }
                         let velocity = value.predictedEndTranslation.height - value.translation.height
                         let isFlick = value.translation.height > 40 && velocity > 120
                         let isDraggedPastThreshold = dragOffset > 130 || value.predictedEndTranslation.height > 250
                         
                         if isFlick || isDraggedPastThreshold {
-                            dragOffset = 0
+                            isDismissing = true
                             closeView()
                         } else {
                             // Apple-native bouncy interactive spring rebound
@@ -75,9 +76,11 @@ public struct iOSNowPlayingView: View {
             )
             .onAppear {
                 dragOffset = 0
+                isDismissing = false
             }
             .onDisappear {
                 dragOffset = 0
+                isDismissing = false
             }
         }
         .sheet(isPresented: $showQueue) {

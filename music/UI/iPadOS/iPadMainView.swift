@@ -29,6 +29,7 @@ public struct iPadMainView: View {
     @State private var selectedItem: iPadSidebarItem? = .tracks
     @State private var isShowingNowPlayingModal = false
     @State private var showSideBySideLyrics = false
+    @State private var nowPlayingPresentationID = 0
     
     public init() {}
     
@@ -62,6 +63,7 @@ public struct iPadMainView: View {
                     // Wide iPad Player Bar
                     iPadPlayerBar(
                         onTapNowPlaying: {
+                            nowPlayingPresentationID += 1
                             withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
                                 isShowingNowPlayingModal = true
                             }
@@ -92,7 +94,7 @@ public struct iPadMainView: View {
                         isShowingNowPlayingModal = false
                     }
                 })
-                .id("ipad_now_playing")
+                .id("ipad_now_playing_\(nowPlayingPresentationID)")
                 .ignoresSafeArea()
                 .transition(.move(edge: .bottom))
                 .zIndex(100)

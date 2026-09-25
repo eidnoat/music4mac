@@ -10,6 +10,7 @@ public struct iPhoneMainView: View {
     @State private var librarySegment = 0 // 0: Tracks, 1: Albums, 2: Artists
     @State private var searchText = ""
     @State private var isShowingNowPlaying = false
+    @State private var nowPlayingPresentationID = 0
     
     @AppStorage("music.ios.songSortOption") private var songSortOption: SongSortOption = .title
     @AppStorage("music.ios.songSortAscending") private var songSortAscending: Bool = true
@@ -65,6 +66,7 @@ public struct iPhoneMainView: View {
             
             // Floating Mini Player docked above the tab bar
             iOSMiniPlayerBar {
+                nowPlayingPresentationID += 1
                 withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
                     isShowingNowPlaying = true
                 }
@@ -78,7 +80,7 @@ public struct iPhoneMainView: View {
                         isShowingNowPlaying = false
                     }
                 })
-                .id("ios_now_playing")
+                .id("ios_now_playing_\(nowPlayingPresentationID)")
                 .ignoresSafeArea()
                 .transition(.move(edge: .bottom))
                 .zIndex(100)
