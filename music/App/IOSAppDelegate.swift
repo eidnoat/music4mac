@@ -17,5 +17,16 @@ public final class IOSAppDelegate: NSObject, UIApplicationDelegate {
         application.beginReceivingRemoteControlEvents()
         return true
     }
+    
+    public func application(
+        _ application: UIApplication,
+        supportedInterfaceOrientationsFor window: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return .all
+        } else {
+            return .portrait
+        }
+    }
 }
 #endif
