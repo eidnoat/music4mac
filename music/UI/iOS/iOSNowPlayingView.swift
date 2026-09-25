@@ -200,25 +200,6 @@ public struct iOSNowPlayingView: View {
                 }
                 
                 Spacer()
-                
-                VStack(spacing: 2) {
-                    Text("NOW PLAYING")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(1)
-                        .foregroundColor(.appleMusicRed)
-                    if let song = player.currentSong {
-                        Text(song.album)
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-                
-                Spacer()
-                
-                // Balance placeholder matching dismiss button width
-                Color.clear
-                    .frame(width: 44, height: 44)
             }
         }
         .contentShape(Rectangle())
