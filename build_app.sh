@@ -43,9 +43,16 @@ ditto "$APP_NAME" "$DIST_DIR/$APP_NAME"
 # Generate local zip archive (using ditto to preserve macOS permissions, attributes, and resource forks)
 ditto -c -k --sequesterRsrc --keepParent "$APP_NAME" music.zip
 
+# Generate macOS installer package (.pkg)
+if command -v pkgbuild &> /dev/null; then
+    echo "==> Creating macOS installer package (.pkg)..."
+    pkgbuild --component "$APP_NAME" --install-location /Applications music.pkg || true
+fi
+
 echo "=========================================="
 echo "==> Build successful!"
 echo "  1. App bundle: $APP_NAME"
 echo "  2. Output dir: $DIST_DIR/$APP_NAME"
 echo "  3. Zip archive: music.zip"
+echo "  4. PKG installer: music.pkg"
 echo "=========================================="
