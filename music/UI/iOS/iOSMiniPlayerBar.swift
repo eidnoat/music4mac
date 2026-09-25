@@ -30,32 +30,44 @@ public struct iOSMiniPlayerBar: View {
                     
                     Spacer()
                     
-                    Button {
-                        player.togglePlayPause()
-                    } label: {
-                        if player.status == .loading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle())
-                                .scaleEffect(0.9)
-                                .frame(width: 36, height: 36)
-                        } else {
-                            Image(systemName: player.status == .playing ? "pause.fill" : "play.fill")
-                                .font(.system(size: 19))
+                    HStack(spacing: 4) {
+                        Button {
+                            player.skipToPrevious()
+                        } label: {
+                            Image(systemName: "backward.fill")
+                                .font(.system(size: 17))
                                 .foregroundColor(.appleMusicRed)
                                 .frame(width: 36, height: 36)
                         }
+                        .buttonStyle(.plain)
+                        
+                        Button {
+                            player.togglePlayPause()
+                        } label: {
+                            if player.status == .loading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(0.9)
+                                    .frame(width: 36, height: 36)
+                            } else {
+                                Image(systemName: player.status == .playing ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 19))
+                                    .foregroundColor(.appleMusicRed)
+                                    .frame(width: 36, height: 36)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button {
+                            player.skipToNext()
+                        } label: {
+                            Image(systemName: "forward.fill")
+                                .font(.system(size: 17))
+                                .foregroundColor(.appleMusicRed)
+                                .frame(width: 36, height: 36)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                    
-                    Button {
-                        player.skipToNext()
-                    } label: {
-                        Image(systemName: "forward.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(.appleMusicRed)
-                            .frame(width: 36, height: 36)
-                    }
-                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
