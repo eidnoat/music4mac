@@ -802,24 +802,6 @@ private struct ClickableTableCell: View {
     }
 }
 
-private struct CircularProgressIndicator: View {
-    let color: Color
-    @State private var isSpinning = false
-    
-    var body: some View {
-        Circle()
-            .trim(from: 0.15, to: 0.85)
-            .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
-            .frame(width: 10, height: 10)
-            .rotationEffect(.degrees(isSpinning ? 360 : 0))
-            .onAppear {
-                withAnimation(.linear(duration: 0.8).repeatForever(autoreverses: false)) {
-                    isSpinning = true
-                }
-            }
-    }
-}
-
 private struct SongTitleCellView: View {
     let song: Song
     let isPlaying: Bool
@@ -837,8 +819,13 @@ private struct SongTitleCellView: View {
                 .lineLimit(1)
             
             if isDownloading {
-                CircularProgressIndicator(color: .secondary)
-                    .help("Caching audio...")
+                DownloadProgressRingView(
+                    progress: cacheManager.downloadProgress[song.id],
+                    size: 12,
+                    lineWidth: 1.5,
+                    color: .appleMusicRed
+                )
+                .help("Caching audio...")
             } else if isCached {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.system(size: 10))

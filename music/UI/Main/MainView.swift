@@ -200,11 +200,13 @@ public struct QueueSideView: View {
                                     .lineLimit(1)
                                 
                                 if cacheManager.downloadingIds.contains(song.id) {
-                                    Circle()
-                                        .trim(from: 0.15, to: 0.85)
-                                        .stroke(index == queue.currentIndex ? Color.appleMusicRed : Color.secondary, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
-                                        .frame(width: 9, height: 9)
-                                        .help("Caching audio...")
+                                    DownloadProgressRingView(
+                                        progress: cacheManager.downloadProgress[song.id],
+                                        size: 10,
+                                        lineWidth: 1.4,
+                                        color: .appleMusicRed
+                                    )
+                                    .help("Caching audio...")
                                 } else if cacheManager.cachedIds.contains(song.id) {
                                     Image(systemName: "arrow.down.circle.fill")
                                         .foregroundColor(index == queue.currentIndex ? .appleMusicRed : .secondary)
