@@ -77,6 +77,10 @@ public struct iPadMainView: View {
                 .navigationTitle(selectedItem?.rawValue ?? "Tracks")
                 .navigationBarTitleDisplayMode(.inline)
                 .searchable(text: $nav.searchText, prompt: "Search music")
+                .onChange(of: selectedItem) { _, _ in
+                    nav.selectedAlbum = nil
+                    nav.selectedArtist = nil
+                }
             }
             .tint(Color.appleMusicRed)
             .accentColor(Color.appleMusicRed)

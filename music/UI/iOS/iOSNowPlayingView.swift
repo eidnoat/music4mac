@@ -76,59 +76,60 @@ public struct iOSNowPlayingView: View {
     // MARK: - Portrait Layout
     private func portraitLayout(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // Top Bar: Drag indicator & dismiss chevron
+            // Top Bar: Drag indicator & dismiss chevron (full width)
             headerBar
-                .padding(.horizontal, 20)
-                .padding(.top, max(geometry.safeAreaInsets.top, 12))
+                .padding(.top, max(geometry.safeAreaInsets.top + 8, 28))
             
-            Spacer(minLength: 8)
-            
-            // Main Artwork or Lyrics
-            if showLyrics {
-                LyricsView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .transition(.opacity)
-            } else {
-                artworkView(maxSize: min(geometry.size.width - 56, geometry.size.height * 0.45, 420))
-                    .transition(.scale(scale: 0.95).combined(with: .opacity))
+            VStack(spacing: 0) {
+                Spacer(minLength: 8)
+                
+                // Main Artwork or Lyrics
+                if showLyrics {
+                    LyricsView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .transition(.opacity)
+                } else {
+                    artworkView(maxSize: min(geometry.size.width - 56, geometry.size.height * 0.45, 420))
+                        .transition(.scale(scale: 0.95).combined(with: .opacity))
+                }
+                
+                Spacer(minLength: 12)
+                
+                // Metadata
+                metadataView
+                    .padding(.horizontal, 28)
+                
+                // Scrubber Bar
+                scrubberView
+                    .padding(.horizontal, 28)
+                    .padding(.top, 12)
+                
+                // Primary Controls (Shuffle, Prev, Play/Pause, Next, Repeat)
+                controlsView
+                    .padding(.horizontal, 24)
+                    .padding(.top, 16)
+                
+                // Volume Slider
+                volumeView
+                    .padding(.horizontal, 28)
+                    .padding(.top, 16)
+                
+                // Bottom Accessories (Lyrics toggle, Queue toggle)
+                bottomAccessories
+                    .padding(.horizontal, 32)
+                    .padding(.top, 16)
+                    .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20))
             }
-            
-            Spacer(minLength: 12)
-            
-            // Metadata
-            metadataView
-                .padding(.horizontal, 28)
-            
-            // Scrubber Bar
-            scrubberView
-                .padding(.horizontal, 28)
-                .padding(.top, 12)
-            
-            // Primary Controls (Shuffle, Prev, Play/Pause, Next, Repeat)
-            controlsView
-                .padding(.horizontal, 24)
-                .padding(.top, 16)
-            
-            // Volume Slider
-            volumeView
-                .padding(.horizontal, 28)
-                .padding(.top, 16)
-            
-            // Bottom Accessories (Lyrics toggle, Queue toggle)
-            bottomAccessories
-                .padding(.horizontal, 32)
-                .padding(.top, 16)
-                .padding(.bottom, max(geometry.safeAreaInsets.bottom, 20))
+            .frame(maxWidth: 560)
         }
-        .frame(maxWidth: 560)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // MARK: - Landscape Layout (iPad / Wide screen)
     private func landscapeLayout(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             headerBar
-                .padding(.horizontal, 32)
-                .padding(.top, max(geometry.safeAreaInsets.top, 16))
+                .padding(.top, max(geometry.safeAreaInsets.top + 8, 28))
             
             HStack(spacing: 48) {
                 // Left: Large Artwork or Real-time Lyrics
@@ -182,26 +183,28 @@ public struct iOSNowPlayingView: View {
     
     // MARK: - Header
     private var headerBar: some View {
-        VStack(spacing: 4) {
+        ZStack {
             Capsule()
                 .fill(Color.secondary.opacity(0.35))
-                .frame(width: 36, height: 5)
-                .padding(.top, 2)
-                .contentShape(Rectangle().inset(by: -10))
+                .frame(width: 38, height: 5)
+                .contentShape(Rectangle().inset(by: -12))
             
             HStack {
                 Button {
                     closeView()
                 } label: {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.secondary)
                         .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 
                 Spacer()
             }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
         .contentShape(Rectangle())
     }
     

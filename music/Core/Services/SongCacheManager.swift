@@ -20,6 +20,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     private let indexFileName = "audio_cache_index.json"
     private let cacheFolder = "AudioCache"
     
+    private let downloadCoordinator = DownloadCoordinator()
     private let downloadSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15.0
@@ -349,15 +350,27 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
             }
         }
         
-        let delegate = SongDownloadProgressDelegate { [weak self] progress in
-            DispatchQueue.main.async {
-                self?.downloadProgress[songId] = progress
-            }
+        let expectedBytes: Int64
+        if let bitrate = song.bitrate, bitrate > 0, song.duration > 0 {
+            expectedBytes = Int64(Double(bitrate) * 1000.0 / 8.0 * song.duration)
+        } else if song.duration > 0 {
+            expectedBytes = Int64(320.0 * 1000.0 / 8.0 * song.duration)
+        } else {
+            expectedBytes = 10 * 1024 * 1024
         }
         
         do {
             guard !Task.isCancelled else { return }
-            let (tempUrl, response) = try await downloadSession.download(from: streamUrl, delegate: delegate)
+            let (tempUrl, response) = try await downloadCoordinator.download(
+                from: streamUrl,
+                songId: songId,
+                expectedBytes: expectedBytes,
+                onProgress: { [weak self] progress in
+                    DispatchQueue.main.async {
+                        self?.downloadProgress[songId] = progress
+                    }
+                }
+            )
             guard !Task.isCancelled else {
                 try? FileManager.default.removeItem(at: tempUrl)
                 return
@@ -584,26 +597,124 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     }
 }
 
-// MARK: - Download Progress Delegate
-private final class SongDownloadProgressDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
-    private let onProgress: (Double) -> Void
-    private var lastReportedTime: TimeInterval = 0
-    
-    init(onProgress: @escaping (Double) -> Void) {
-        self.onProgress = onProgress
+// MARK: - Download Coordinator
+private final class DownloadCoordinator: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+    private struct PendingTask {
+        let songId: String
+        let expectedBytes: Int64
+        let onProgress: (Double) -> Void
+        let continuation: CheckedContinuation<(URL, URLResponse), Error>
+        var lastReportedTime: TimeInterval = 0
+        var lastReportedProgress: Double = 0
     }
     
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        guard totalBytesExpectedToWrite > 0 else { return }
-        let progress = min(max(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite), 0.0), 1.0)
-        let now = ProcessInfo.processInfo.systemUptime
-        if now - lastReportedTime >= 0.05 || progress >= 0.99 {
-            lastReportedTime = now
-            onProgress(progress)
+    private let lock = NSLock()
+    private var tasks: [Int: PendingTask] = [:]
+    private var session: URLSession!
+    
+    override init() {
+        super.init()
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 20.0
+        config.timeoutIntervalForResource = 300.0
+        config.urlCache = nil
+        self.session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+    }
+    
+    func download(
+        from url: URL,
+        songId: String,
+        expectedBytes: Int64,
+        onProgress: @escaping (Double) -> Void
+    ) async throws -> (URL, URLResponse) {
+        let downloadTask = session.downloadTask(with: url)
+        let taskId = downloadTask.taskIdentifier
+        
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                lock.lock()
+                tasks[taskId] = PendingTask(
+                    songId: songId,
+                    expectedBytes: expectedBytes,
+                    onProgress: onProgress,
+                    continuation: continuation
+                )
+                lock.unlock()
+                
+                downloadTask.resume()
+            }
+        } onCancel: {
+            downloadTask.cancel()
         }
     }
     
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        // Completion handled by async URLSession.download return
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
+        lock.lock()
+        guard var pending = tasks[downloadTask.taskIdentifier] else {
+            lock.unlock()
+            return
+        }
+        
+        let expected: Double
+        if totalBytesExpectedToWrite > 0 {
+            expected = Double(totalBytesExpectedToWrite)
+        } else if pending.expectedBytes > 0 {
+            expected = Double(pending.expectedBytes)
+        } else {
+            expected = 8.0 * 1024.0 * 1024.0 // 8MB default fallback
+        }
+        
+        let rawProgress = min(max(Double(totalBytesWritten) / expected, 0.05), 0.98)
+        let now = ProcessInfo.processInfo.systemUptime
+        let shouldReport = (now - pending.lastReportedTime >= 0.05) || (rawProgress - pending.lastReportedProgress >= 0.02)
+        if shouldReport {
+            pending.lastReportedTime = now
+            pending.lastReportedProgress = rawProgress
+            tasks[downloadTask.taskIdentifier] = pending
+            lock.unlock()
+            pending.onProgress(rawProgress)
+        } else {
+            lock.unlock()
+        }
+    }
+    
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {
+        lock.lock()
+        guard let pending = tasks.removeValue(forKey: downloadTask.taskIdentifier) else {
+            lock.unlock()
+            return
+        }
+        lock.unlock()
+        
+        let tempDir = FileManager.default.temporaryDirectory
+        let stableUrl = tempDir.appendingPathComponent(UUID().uuidString + ".tmp")
+        do {
+            try? FileManager.default.removeItem(at: stableUrl)
+            try FileManager.default.moveItem(at: location, to: stableUrl)
+            pending.onProgress(1.0)
+            pending.continuation.resume(returning: (stableUrl, downloadTask.response ?? URLResponse()))
+        } catch {
+            pending.continuation.resume(throwing: error)
+        }
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error = error {
+            lock.lock()
+            let pending = tasks.removeValue(forKey: task.taskIdentifier)
+            lock.unlock()
+            
+            pending?.continuation.resume(throwing: error)
+        }
     }
 }

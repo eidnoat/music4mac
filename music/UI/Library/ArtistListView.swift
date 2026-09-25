@@ -19,6 +19,7 @@ public struct ArtistListView: View {
         }
     }
     
+    #if os(macOS)
     public var body: some View {
         NavigationSplitView {
             ScrollViewReader { proxy in
@@ -58,14 +59,92 @@ public struct ArtistListView: View {
             }
         }
     }
+    #else
+    private let columns = [
+        GridItem(.adaptive(minimum: 140, maximum: 190), spacing: 24)
+    ]
+    
+    public var body: some View {
+        Group {
+            if let selected = nav.selectedArtist {
+                let currentArtist = storage.artists.first(where: { $0.id == selected.id }) ?? selected
+                ArtistDetailView(artist: currentArtist) {
+                    nav.selectedArtist = nil
+                }
+            } else {
+                if displayedArtists.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "music.mic")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary.opacity(0.6))
+                        Text("No Artists Found")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 24) {
+                            ForEach(displayedArtists) { artist in
+                                ArtistCard(artist: artist)
+                                    .onTapGesture {
+                                        nav.selectedArtist = artist
+                                    }
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 20)
+                    }
+                }
+            }
+        }
+    }
+    #endif
+}
+
+public struct ArtistCard: View {
+    let artist: Artist
+    
+    public var body: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color.secondary.opacity(0.12))
+                    .frame(width: 110, height: 110)
+                Image(systemName: "music.mic")
+                    .font(.system(size: 42))
+                    .foregroundColor(.appleMusicRed)
+            }
+            .shadow(color: .black.opacity(0.06), radius: 5, x: 0, y: 2)
+            
+            VStack(spacing: 3) {
+                Text(artist.name)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+                
+                Text("\(artist.albumCount) albums · \(artist.songCount) tracks")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+    }
 }
 
 public struct ArtistDetailView: View {
     public let artist: Artist
+    public var onBack: (() -> Void)? = nil
     @ObservedObject var storage = StorageManager.shared
     
-    public init(artist: Artist) {
+    public init(artist: Artist, onBack: (() -> Void)? = nil) {
         self.artist = artist
+        self.onBack = onBack
     }
     
     private var currentArtist: Artist {
@@ -74,6 +153,24 @@ public struct ArtistDetailView: View {
     
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            if let onBack = onBack {
+                HStack {
+                    Button(action: onBack) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Artists")
+                        }
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.appleMusicRed)
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+                .padding(.bottom, 6)
+            }
+            
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(currentArtist.name)
