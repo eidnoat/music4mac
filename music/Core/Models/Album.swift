@@ -8,15 +8,17 @@ public struct Album: Identifiable, Hashable, Codable, Sendable {
     public var coverUrl: URL?
     public var coverId: String?
     public var songCount: Int
-    public var songs: [Song] = []
-    
+    /// Referenced by id rather than holding full `[Song]` copies, so the derived
+    /// collections stay lightweight (no N× duplication of song structs in memory).
+    public var songIds: [String] = []
+
     public var effectiveCoverUrl: URL? {
-        if let first = songs.first, let cached = SongCacheManager.shared.getCachedCoverUrl(forId: first.id) {
+        if let firstId = songIds.first, let cached = SongCacheManager.shared.getCachedCoverUrl(forId: firstId) {
             return cached
         }
         return coverUrl
     }
-    
+
     public init(
         id: String,
         title: String,
@@ -25,7 +27,7 @@ public struct Album: Identifiable, Hashable, Codable, Sendable {
         coverUrl: URL? = nil,
         coverId: String? = nil,
         songCount: Int = 0,
-        songs: [Song] = []
+        songIds: [String] = []
     ) {
         self.id = id
         self.title = title
@@ -34,7 +36,7 @@ public struct Album: Identifiable, Hashable, Codable, Sendable {
         self.coverUrl = coverUrl
         self.coverId = coverId
         self.songCount = songCount
-        self.songs = songs
+        self.songIds = songIds
     }
 }
 
@@ -44,21 +46,22 @@ public struct Artist: Identifiable, Hashable, Codable, Sendable {
     public var albumCount: Int = 0
     public var songCount: Int = 0
     public var coverUrl: URL?
-    public var songs: [Song] = []
-    
+    /// Referenced by id rather than holding full `[Song]` copies (see `Album.songIds`).
+    public var songIds: [String] = []
+
     public init(
         id: String,
         name: String,
         albumCount: Int = 0,
         songCount: Int = 0,
         coverUrl: URL? = nil,
-        songs: [Song] = []
+        songIds: [String] = []
     ) {
         self.id = id
         self.name = name
         self.albumCount = albumCount
         self.songCount = songCount
         self.coverUrl = coverUrl
-        self.songs = songs
+        self.songIds = songIds
     }
 }

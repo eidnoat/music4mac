@@ -37,7 +37,7 @@ final class StorageManagerTests: XCTestCase {
         let albumOne = storage.albums.first(where: { $0.title == "Album One" })
         XCTAssertNotNil(albumOne)
         XCTAssertEqual(albumOne?.songCount, 2)
-        XCTAssertEqual(albumOne?.songs.first?.title, "Track A")
+        XCTAssertEqual(storage.songs(withIds: albumOne?.songIds ?? []).first?.title, "Track A")
         
         let artistAlpha = storage.artists.first(where: { $0.name == "Artist Alpha" })
         XCTAssertNotNil(artistAlpha)

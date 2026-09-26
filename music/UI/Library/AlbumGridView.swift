@@ -28,7 +28,7 @@ public struct AlbumGridView: View {
         Group {
             if let selected = nav.selectedAlbum {
                 let currentAlbum = storage.albums.first(where: { $0.id == selected.id }) ?? selected
-                AlbumDetailView(album: currentAlbum) {
+                AlbumDetailView(album: currentAlbum, songs: storage.songs(withIds: currentAlbum.songIds)) {
                     nav.selectedAlbum = nil
                 }
             } else {
@@ -67,8 +67,9 @@ public struct AlbumCard: View {
                 
                 if isHovered {
                     Button {
-                        if !album.songs.isEmpty {
-                            AudioPlayerEngine.shared.playSong(album.songs[0], in: album.songs)
+                        let songs = StorageManager.shared.songs(withIds: album.songIds)
+                        if !songs.isEmpty {
+                            AudioPlayerEngine.shared.playSong(songs[0], in: songs)
                         }
                     } label: {
                         Image(systemName: "play.circle.fill")
@@ -107,19 +108,21 @@ public struct AlbumCard: View {
 
 public struct AlbumDetailView: View {
     public let album: Album
+    public let songs: [Song]
     public let onBack: () -> Void
-    
+
     @ObservedObject private var player = AudioPlayerEngine.shared
     @ObservedObject private var queue = PlayQueueManager.shared
     @ObservedObject private var cacheManager = SongCacheManager.shared
-    
-    public init(album: Album, onBack: @escaping () -> Void = {}) {
+
+    public init(album: Album, songs: [Song], onBack: @escaping () -> Void = {}) {
         self.album = album
+        self.songs = songs
         self.onBack = onBack
     }
     
     private var totalDurationString: String {
-        let total = album.songs.reduce(0) { $0 + $1.duration }
+        let total = songs.reduce(0) { $0 + $1.duration }
         guard total > 0 else { return "" }
         let mins = Int(total) / 60
         if mins < 60 {
@@ -147,7 +150,7 @@ public struct AlbumDetailView: View {
             
             // 2. Tracks Section
             Section {
-                ForEach(Array(album.songs.enumerated()), id: \.element.id) { index, song in
+                ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
                     albumSongRow(song: song, index: index)
                 }
             }
@@ -236,7 +239,7 @@ public struct AlbumDetailView: View {
                     if let year = album.year {
                         Text("\(year) ·")
                     }
-                    Text("\(album.songs.count) tracks")
+                    Text("\(songs.count) tracks")
                     if !totalDurationString.isEmpty {
                         Text("· \(totalDurationString)")
                     }
@@ -247,9 +250,9 @@ public struct AlbumDetailView: View {
                 // Action Buttons: Play & Shuffle
                 HStack(spacing: 14) {
                     Button {
-                        if !album.songs.isEmpty {
+                        if !songs.isEmpty {
                             queue.isShuffleEnabled = false
-                            player.playSong(album.songs[0], in: album.songs)
+                            player.playSong(songs[0], in: songs)
                         }
                     } label: {
                         HStack(spacing: 6) {
@@ -267,10 +270,10 @@ public struct AlbumDetailView: View {
                     .buttonStyle(.plain)
                     
                     Button {
-                        if !album.songs.isEmpty {
+                        if !songs.isEmpty {
                             queue.isShuffleEnabled = true
-                            let randomSong = album.songs.randomElement() ?? album.songs[0]
-                            player.playSong(randomSong, in: album.songs)
+                            let randomSong = songs.randomElement() ?? songs[0]
+                            player.playSong(randomSong, in: songs)
                         }
                     } label: {
                         HStack(spacing: 6) {
@@ -301,7 +304,7 @@ public struct AlbumDetailView: View {
         let isCached = cacheManager.isSongCached(id: song.id)
         
         return Button {
-            player.playSong(song, in: album.songs)
+            player.playSong(song, in: songs)
         } label: {
             HStack(spacing: 12) {
                 // 1. Track Number or Playing Waveform
@@ -393,7 +396,7 @@ public struct AlbumDetailView: View {
         }
         .contextMenu {
             Button {
-                player.playSong(song, in: album.songs)
+                player.playSong(song, in: songs)
             } label: {
                 Label("Play", systemImage: "play.fill")
             }

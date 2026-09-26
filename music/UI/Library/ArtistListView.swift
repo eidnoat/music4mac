@@ -49,7 +49,7 @@ public struct ArtistListView: View {
             }
         } detail: {
             if let selected = nav.selectedArtist {
-                ArtistDetailView(artist: selected)
+                ArtistDetailView(artist: selected, songs: storage.songs(withIds: selected.songIds))
             } else {
                 Text("Select an artist from the left")
                     .foregroundColor(.secondary)
@@ -65,7 +65,7 @@ public struct ArtistListView: View {
         Group {
             if let selected = nav.selectedArtist {
                 let currentArtist = storage.artists.first(where: { $0.id == selected.id }) ?? selected
-                ArtistDetailView(artist: currentArtist) {
+                ArtistDetailView(artist: currentArtist, songs: storage.songs(withIds: currentArtist.songIds)) {
                     nav.selectedArtist = nil
                 }
             } else {
@@ -136,14 +136,16 @@ public struct ArtistCard: View {
 
 public struct ArtistDetailView: View {
     public let artist: Artist
+    public let songs: [Song]
     public var onBack: (() -> Void)? = nil
     @ObservedObject var storage = StorageManager.shared
-    
-    public init(artist: Artist, onBack: (() -> Void)? = nil) {
+
+    public init(artist: Artist, songs: [Song], onBack: (() -> Void)? = nil) {
         self.artist = artist
+        self.songs = songs
         self.onBack = onBack
     }
-    
+
     private var currentArtist: Artist {
         storage.artists.first(where: { $0.id == artist.id }) ?? artist
     }
@@ -172,14 +174,14 @@ public struct ArtistDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(currentArtist.name)
                         .font(.title2.bold())
-                    Text("\(currentArtist.albumCount) albums · \(currentArtist.songs.count) tracks")
+                    Text("\(currentArtist.albumCount) albums · \(songs.count) tracks")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 Spacer()
                 Button {
-                    if !currentArtist.songs.isEmpty {
-                        AudioPlayerEngine.shared.playSong(currentArtist.songs[0], in: currentArtist.songs)
+                    if !songs.isEmpty {
+                        AudioPlayerEngine.shared.playSong(songs[0], in: songs)
                     }
                 } label: {
                     Label("Play All", systemImage: "play.fill")
@@ -192,8 +194,8 @@ public struct ArtistDetailView: View {
             
             Divider()
             
-            SongListView(title: "", songs: currentArtist.songs, allowSorting: false)
-                .id("artist_songs_\(currentArtist.id)_\(currentArtist.songs.count)")
+            SongListView(title: "", songs: songs, allowSorting: false)
+                .id("artist_songs_\(currentArtist.id)_\(songs.count)")
         }
         .navigationTitle(currentArtist.name)
         #if os(iOS)

@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-public final class StorageManager: ObservableObject {
+public final class StorageManager: ObservableObject, @unchecked Sendable {
     public static let shared = StorageManager()
     
     private let libraryFileName = "library_cache.json"
@@ -51,19 +51,31 @@ public final class StorageManager: ObservableObject {
     }
     
     public func updateDerivedCollections() {
+        // Invalidate any in-flight async rebuild so a synchronous rebuild always wins.
+        derivedRebuildGeneration += 1
+        let (albums, artists) = computeDerivedCollections(from: songs)
+        applyDerivedCollections(albums: albums, artists: artists)
+    }
+
+    /// Pure, thread-safe computation of the derived album/artist collections.
+    /// Runs off the main thread during syncs to avoid blocking the UI.
+    private func computeDerivedCollections(from songsSnapshot: [Song]) -> (albums: [Album], artists: [Artist]) {
         var albumDict: [String: [Song]] = [:]
         var artistDict: [String: [Song]] = [:]
         var artistAlbums: [String: Set<String>] = [:]
-        
-        for song in songs {
+
+        for song in songsSnapshot {
             let albumKey = "\(song.album)-\(song.artist)"
             albumDict[albumKey, default: []].append(song)
             artistDict[song.artist, default: []].append(song)
             artistAlbums[song.artist, default: []].insert(song.album)
         }
-        
-        self.albums = albumDict.map { (key, albumSongs) in
+
+        let albums = albumDict.map { (key, albumSongs) in
             let first = albumSongs[0]
+            let orderedIds = albumSongs
+                .sorted(by: { ($0.trackNumber ?? 0) < ($1.trackNumber ?? 0) })
+                .map(\.id)
             return Album(
                 id: key,
                 title: first.album,
@@ -72,20 +84,29 @@ public final class StorageManager: ObservableObject {
                 coverUrl: first.coverUrl,
                 coverId: first.coverId,
                 songCount: albumSongs.count,
-                songs: albumSongs.sorted(by: { ($0.trackNumber ?? 0) < ($1.trackNumber ?? 0) })
+                songIds: orderedIds
             )
         }.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })
-        
-        self.artists = artistDict.map { (name, artistSongs) in
+
+        let artists = artistDict.map { (name, artistSongs) in
             Artist(
                 id: name,
                 name: name,
                 albumCount: artistAlbums[name]?.count ?? 0,
                 songCount: artistSongs.count,
-                songs: artistSongs.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })
+                songIds: artistSongs
+                    .sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })
+                    .map(\.id)
             )
         }.sorted(by: { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
-        
+
+        return (albums, artists)
+    }
+
+    private func applyDerivedCollections(albums: [Album], artists: [Artist]) {
+        self.albums = albums
+        self.artists = artists
+
         if let currentAlbum = NavigationCoordinator.shared.selectedAlbum,
            let updated = self.albums.first(where: { $0.id == currentAlbum.id }) {
             NavigationCoordinator.shared.selectedAlbum = updated
@@ -94,6 +115,31 @@ public final class StorageManager: ObservableObject {
            let updated = self.artists.first(where: { $0.id == currentArtist.id }) {
             NavigationCoordinator.shared.selectedArtist = updated
         }
+    }
+
+    private var derivedRebuildGeneration = 0
+
+    /// Rebuilds albums/artists off the main thread and publishes the result back on main,
+    /// discarding stale results if a newer rebuild was scheduled in the meantime.
+    private func scheduleDerivedCollectionsRebuild() {
+        derivedRebuildGeneration += 1
+        let generation = derivedRebuildGeneration
+        let snapshot = songs
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = self?.computeDerivedCollections(from: snapshot) ?? ([], [])
+            DispatchQueue.main.async { [weak self] in
+                guard let self, generation == self.derivedRebuildGeneration else { return }
+                self.applyDerivedCollections(albums: result.albums, artists: result.artists)
+            }
+        }
+    }
+
+    /// Resolves ids back into the authoritative `[Song]` values, preserving the order of `ids`.
+    /// Only used in detail views and point-in-time actions (not in scroll hot paths).
+    public func songs(withIds ids: [String]) -> [Song] {
+        guard !ids.isEmpty else { return [] }
+        let byId = Dictionary(songs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return ids.compactMap { byId[$0] }
     }
     
     public func saveLibrary() {
@@ -147,7 +193,7 @@ public final class StorageManager: ObservableObject {
         }
         self.songs = Array(dict.values).sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })
         self.dataVersion = UUID()
-        updateDerivedCollections()
+        scheduleDerivedCollectionsRebuild()
         saveLibrary()
     }
     

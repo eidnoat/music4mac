@@ -60,10 +60,11 @@ public final class NavigationCoordinator: ObservableObject {
         
         // 1. Try match title and artist
         if let trimmedArtist = trimmedArtist, !trimmedArtist.isEmpty {
+            let songsById = Dictionary(storage.songs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             if let album = storage.albums.first(where: {
                 $0.title.localizedCaseInsensitiveCompare(trimmedTitle) == .orderedSame &&
                 ($0.artist.localizedCaseInsensitiveCompare(trimmedArtist) == .orderedSame ||
-                 $0.songs.contains { $0.artist.localizedCaseInsensitiveCompare(trimmedArtist) == .orderedSame })
+                 $0.songIds.contains { songsById[$0]?.artist.localizedCaseInsensitiveCompare(trimmedArtist) == .orderedSame })
             }) {
                 self.selectedAlbum = album
                 self.selectedSidebarItem = .albums

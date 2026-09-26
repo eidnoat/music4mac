@@ -284,7 +284,9 @@ public struct iPhoneMainView: View {
         return ScrollView {
             LazyVGrid(columns: columns, spacing: 20) {
                 ForEach(albums) { album in
-                    NavigationLink(destination: AlbumDetailView(album: album, onBack: {})) {
+                    NavigationLink {
+                        AlbumDetailView(album: album, songs: StorageManager.shared.songs(withIds: album.songIds), onBack: {})
+                    } label: {
                         VStack(alignment: .leading, spacing: 6) {
                             CoverImageView(url: album.effectiveCoverUrl) {
                                 ZStack {
@@ -322,7 +324,9 @@ public struct iPhoneMainView: View {
     private func artistsList(artists: [Artist]) -> some View {
         List {
             ForEach(artists) { artist in
-                NavigationLink(destination: ArtistDetailView(artist: artist)) {
+                NavigationLink {
+                    ArtistDetailView(artist: artist, songs: StorageManager.shared.songs(withIds: artist.songIds))
+                } label: {
                     HStack(spacing: 14) {
                         ZStack {
                             Circle()

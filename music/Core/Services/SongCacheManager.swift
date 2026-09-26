@@ -30,6 +30,7 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     }()
     
     private var activeDownloadTasks: [String: Task<Void, Never>] = [:]
+    private let downloadLimiter = DownloadLimiter(limit: 3)
     
     public let baseDir: URL
     public let cacheDirectory: URL
@@ -245,9 +246,16 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
         }
         lock.unlock()
 
+        let limiter = downloadLimiter
         let task: Task<Void, Never> = Task(priority: .utility) { [weak self] in
-            guard let self = self else { return }
+            // Gate concurrent downloads so batch operations don't open unbounded network streams.
+            await limiter.acquire()
+            guard let self else {
+                await limiter.release()
+                return
+            }
             await self.cacheSong(song)
+            await limiter.release()
         }
 
         lock.lock()
@@ -584,6 +592,36 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
 }
 
 // MARK: - Download Coordinator
+
+/// Caps the number of simultaneous track downloads so batch operations
+/// (e.g. "Cache Selected Tracks") do not spawn an unbounded number of network streams.
+private actor DownloadLimiter {
+    private let limit: Int
+    private var active = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    init(limit: Int) {
+        self.limit = limit
+    }
+
+    func acquire() async {
+        if active < limit {
+            active += 1
+            return
+        }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        if waiters.isEmpty {
+            active -= 1
+        } else {
+            let next = waiters.removeFirst()
+            next.resume()
+        }
+    }
+}
+
 private final class DownloadCoordinator: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
     private struct PendingTask {
         let songId: String
