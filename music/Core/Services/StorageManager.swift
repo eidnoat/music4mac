@@ -71,11 +71,13 @@ public final class StorageManager: ObservableObject, @unchecked Sendable {
             artistAlbums[song.artist, default: []].insert(song.album)
         }
 
-        let albums = albumDict.map { (key, albumSongs) in
-            let first = albumSongs[0]
-            let orderedIds = albumSongs
-                .sorted(by: { ($0.trackNumber ?? 0) < ($1.trackNumber ?? 0) })
-                .map(\.id)
+        let albums: [Album] = albumDict.map { (key, albumSongs) in
+            let first: Song = albumSongs[0]
+            let orderedIds: [String] = albumSongs
+                .sorted(by: { (a: Song, b: Song) -> Bool in
+                    (a.trackNumber ?? 0) < (b.trackNumber ?? 0)
+                })
+                .map { (song: Song) -> String in song.id }
             return Album(
                 id: key,
                 title: first.album,
@@ -86,19 +88,27 @@ public final class StorageManager: ObservableObject, @unchecked Sendable {
                 songCount: albumSongs.count,
                 songIds: orderedIds
             )
-        }.sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })
+        }
+        .sorted(by: { (a: Album, b: Album) -> Bool in
+            a.title.localizedStandardCompare(b.title) == .orderedAscending
+        })
 
-        let artists = artistDict.map { (name, artistSongs) in
+        let artists: [Artist] = artistDict.map { (name, artistSongs) in
             Artist(
                 id: name,
                 name: name,
                 albumCount: artistAlbums[name]?.count ?? 0,
                 songCount: artistSongs.count,
                 songIds: artistSongs
-                    .sorted(by: { $0.title.localizedStandardCompare($1.title) == .orderedAscending })
-                    .map(\.id)
+                    .sorted(by: { (a: Song, b: Song) -> Bool in
+                        a.title.localizedStandardCompare(b.title) == .orderedAscending
+                    })
+                    .map { (song: Song) -> String in song.id }
             )
-        }.sorted(by: { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
+        }
+        .sorted(by: { (a: Artist, b: Artist) -> Bool in
+            a.name.localizedStandardCompare(b.name) == .orderedAscending
+        })
 
         return (albums, artists)
     }
@@ -126,7 +136,8 @@ public final class StorageManager: ObservableObject, @unchecked Sendable {
         let generation = derivedRebuildGeneration
         let snapshot = songs
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let result = self?.computeDerivedCollections(from: snapshot) ?? ([], [])
+            let fallback: (albums: [Album], artists: [Artist]) = ([], [])
+            let result = self?.computeDerivedCollections(from: snapshot) ?? fallback
             DispatchQueue.main.async { [weak self] in
                 guard let self, generation == self.derivedRebuildGeneration else { return }
                 self.applyDerivedCollections(albums: result.albums, artists: result.artists)
