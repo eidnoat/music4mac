@@ -226,44 +226,30 @@ public final class SongCacheManager: ObservableObject, @unchecked Sendable {
     }
     
     public func startAutoCache(for song: Song) {
-        guard isEnabled else { return }
-        guard let remoteId = song.remoteId, !remoteId.isEmpty else { return }
-        guard !isSongCached(id: song.id) else { return }
-        
-        lock.lock()
-        guard !downloadingSongIds.contains(song.id) else {
-            lock.unlock()
-            return
-        }
-        lock.unlock()
-        
-        let task: Task<Void, Never> = Task(priority: .utility) { [weak self] in
-            guard let self = self else { return }
-            await self.cacheSong(song)
-        }
-        
-        lock.lock()
-        activeDownloadTasks[song.id] = task
-        lock.unlock()
+        enqueueDownload(for: song)
     }
-    
+
     public func downloadSong(_ song: Song) {
+        enqueueDownload(for: song)
+    }
+
+    private func enqueueDownload(for song: Song) {
         guard isEnabled else { return }
         guard let remoteId = song.remoteId, !remoteId.isEmpty else { return }
         guard !isSongCached(id: song.id) else { return }
-        
+
         lock.lock()
         guard !downloadingSongIds.contains(song.id) else {
             lock.unlock()
             return
         }
         lock.unlock()
-        
+
         let task: Task<Void, Never> = Task(priority: .utility) { [weak self] in
             guard let self = self else { return }
             await self.cacheSong(song)
         }
-        
+
         lock.lock()
         activeDownloadTasks[song.id] = task
         lock.unlock()

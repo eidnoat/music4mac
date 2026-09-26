@@ -198,7 +198,7 @@ public struct SongListView: View {
                     Image(systemName: "music.note")
                         .font(.system(size: 40))
                         .foregroundColor(.secondary.opacity(0.4))
-                    Text(songs.isEmpty ? "Library is empty. Add a music folder in Settings or connect to Navidrome." : "No matching tracks found")
+                    Text(songs.isEmpty ? "Library is empty. Connect to Navidrome in Settings, then sync your library." : "No matching tracks found")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     Spacer()

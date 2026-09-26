@@ -206,12 +206,15 @@ public final class PlayQueueManager: ObservableObject {
     private func handlePlayModeChange() {
         UserDefaults.standard.set(playMode.rawValue, forKey: modeStorageKey)
         guard let current = currentSong else { return }
-        
+
         isReorganizingQueue = true
         defer { isReorganizingQueue = false }
-        
+
         if playMode == .shuffle {
-            var newQueue = originalQueue.isEmpty ? queue : originalQueue
+            // Snapshot the current logical order so it can be restored exactly on exit,
+            // instead of trusting an `originalQueue` that may have gone stale after appends.
+            originalQueue = queue
+            var newQueue = queue
             if let idx = newQueue.firstIndex(where: { $0.id == current.id }) {
                 newQueue.remove(at: idx)
             }
@@ -220,11 +223,15 @@ public final class PlayQueueManager: ObservableObject {
             self.queue = newQueue
             self.currentIndex = 0
         } else {
-            if !originalQueue.isEmpty {
-                if let idx = originalQueue.firstIndex(where: { $0.id == current.id }) {
-                    self.queue = originalQueue
-                    self.currentIndex = idx
-                }
+            // Restore the pre-shuffle order with a graceful fallback instead of silently no-oping.
+            let restored = originalQueue.isEmpty ? queue : originalQueue
+            if let idx = restored.firstIndex(where: { $0.id == current.id }) {
+                self.queue = restored
+                self.currentIndex = idx
+            } else if !queue.isEmpty {
+                self.queue = restored
+                self.queue.insert(current, at: 0)
+                self.currentIndex = 0
             }
         }
     }

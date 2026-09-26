@@ -1,5 +1,53 @@
 import Foundation
 import CryptoKit
+import Security
+
+private enum KeychainStore {
+    private static let service = "com.afalphy.music.navidrome"
+    private static let account = "password"
+
+    static func save(password: String) {
+        guard !password.isEmpty, let data = password.data(using: .utf8) else {
+            delete()
+            return
+        }
+        let baseQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let attributes: [String: Any] = [kSecValueData as String: data]
+        let status = SecItemUpdate(baseQuery as CFDictionary, attributes as CFDictionary)
+        if status == errSecItemNotFound {
+            var newItem = baseQuery
+            newItem[kSecValueData as String] = data
+            SecItemAdd(newItem as CFDictionary, nil)
+        }
+    }
+
+    static func loadPassword() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func delete() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+}
 
 public struct NavidromeConfig: Codable, Equatable {
     public var serverUrl: String
@@ -34,20 +82,43 @@ public final class NavidromeClient: ObservableObject {
         configuration.timeoutIntervalForResource = 60
         configuration.urlCache = nil // API JSON queries have unique tokens and should not use URLCache
         self.session = URLSession(configuration: configuration)
-        
-        let savedData = UserDefaults.standard.data(forKey: configKey) ?? UserDefaults.standard.data(forKey: "sylvakru.navidrome.config")
+
+        var serverUrl = ""
+        var username = ""
+        var legacyPassword = ""
+        let savedData = UserDefaults.standard.data(forKey: configKey)
+            ?? UserDefaults.standard.data(forKey: "sylvakru.navidrome.config")
         if let data = savedData,
            let saved = try? JSONDecoder().decode(NavidromeConfig.self, from: data) {
-            self.config = saved
-        } else {
-            self.config = NavidromeConfig()
+            serverUrl = saved.serverUrl
+            username = saved.username
+            legacyPassword = saved.password
         }
+
+        // Prefer the Keychain; fall back to (and migrate) a plaintext password left in UserDefaults.
+        let password: String
+        if let keychainPassword = KeychainStore.loadPassword() {
+            password = keychainPassword
+        } else {
+            password = legacyPassword
+            if !legacyPassword.isEmpty {
+                KeychainStore.save(password: legacyPassword)
+            }
+        }
+        // Remove any plaintext password left over from the previous UserDefaults-based storage.
+        UserDefaults.standard.removeObject(forKey: "sylvakru.navidrome.config")
+
+        self.config = NavidromeConfig(serverUrl: serverUrl, username: username, password: password)
     }
-    
+
     private func saveConfig() {
-        if let data = try? JSONEncoder().encode(config) {
+        // Store only non-sensitive fields in UserDefaults; the password lives in the Keychain.
+        var stored = config
+        stored.password = ""
+        if let data = try? JSONEncoder().encode(stored) {
             UserDefaults.standard.set(data, forKey: configKey)
         }
+        KeychainStore.save(password: config.password)
     }
     
     // MARK: - Subsonic Auth & Params
@@ -152,12 +223,16 @@ public final class NavidromeClient: ObservableObject {
     
     public func getAllSongs(batchSize: Int = 1000) async throws -> [Song] {
         var allSongs: [Song] = []
+        var seenIds = Set<String>()
         var offset = 0
         while true {
             let batch = try await getSongs(size: batchSize, offset: offset)
             if batch.isEmpty { break }
-            allSongs.append(contentsOf: batch)
+            let newSongs = batch.filter { seenIds.insert($0.id).inserted }
+            allSongs.append(contentsOf: newSongs)
             if batch.count < batchSize { break }
+            // Guard against servers that ignore `songOffset` and keep returning the same set.
+            if newSongs.isEmpty { break }
             offset += batch.count
         }
         return allSongs

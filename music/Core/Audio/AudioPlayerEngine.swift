@@ -20,7 +20,6 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     
     @Published public var parsedLyrics: ParsedLyrics = ParsedLyrics()
     public var activeLyricIndex: Int = -1
-    public var lyricsOffset: TimeInterval = 0 // In seconds
     
     public let progress = AudioProgressTracker.shared
     public var currentTime: TimeInterval {
@@ -81,10 +80,18 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         } else {
             playQueue.append(song)
         }
-        loadAndPlay(song: song)
+        loadAndPlay(song: song, forceRestart: true)
     }
     
-    public func loadAndPlay(song: Song) {
+    public func loadAndPlay(song: Song, forceRestart: Bool = false) {
+        assert(Thread.isMainThread, "AudioPlayerEngine.loadAndPlay must be called on the main thread")
+        // Idempotency guard: an automated index-driven reload of the already-active stream is a no-op.
+        // Explicit user actions (playSong / skip) pass forceRestart to replay from the beginning.
+        if !forceRestart,
+           song.id == currentSong?.id,
+           status == .playing || status == .loading {
+            return
+        }
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
@@ -313,7 +320,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     
     public func skipToNext() {
         if let next = playQueue.nextSong() {
-            loadAndPlay(song: next)
+            loadAndPlay(song: next, forceRestart: true)
         } else {
             stop()
         }
@@ -323,7 +330,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         if currentTime > 3.0 {
             seek(to: 0)
         } else if let prev = playQueue.previousSong() {
-            loadAndPlay(song: prev)
+            loadAndPlay(song: prev, forceRestart: true)
         }
     }
     
@@ -362,12 +369,10 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     private func loadLyrics(for song: Song) {
         self.parsedLyrics = ParsedLyrics()
         self.activeLyricIndex = -1
-        self.lyricsOffset = 0
-        
+
         if let embedded = song.lyrics, !embedded.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let parsed = LyricsService.shared.parse(lrcContent: embedded, songDuration: song.duration)
             self.parsedLyrics = parsed
-            self.lyricsOffset = parsed.offset
             self.updateLyricsActiveIndex()
             return
         }
@@ -376,7 +381,6 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
            !cached.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let parsed = LyricsService.shared.parse(lrcContent: cached, songDuration: song.duration)
             self.parsedLyrics = parsed
-            self.lyricsOffset = parsed.offset
             self.updateLyricsActiveIndex()
             return
         }
@@ -389,7 +393,6 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
                     SongCacheManager.shared.saveCachedLyrics(forId: song.id, lyrics: lrc)
                     let parsed = LyricsService.shared.parse(lrcContent: lrc, songDuration: song.duration)
                     self.parsedLyrics = parsed
-                    self.lyricsOffset = parsed.offset
                     self.updateLyricsActiveIndex()
                 } else {
                     self.parsedLyrics = ParsedLyrics(isKaraoke: false, lines: [LyricLine(start: 0, text: "No lyrics available")])
@@ -403,8 +406,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     private func updateLyricsActiveIndex() {
         let active = LyricsService.shared.activeLineIndex(
             in: parsedLyrics.lines,
-            position: currentTime,
-            offset: lyricsOffset
+            position: currentTime
         )
         if active != self.activeLyricIndex {
             self.activeLyricIndex = active

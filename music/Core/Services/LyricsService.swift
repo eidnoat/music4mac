@@ -213,8 +213,10 @@ public final class LyricsService {
     
     /// Finds the currently active lyric line index for given playback position.
     /// Includes a subtle 0.15s lead time for natural reading anticipation and smooth scroll synchronization.
-    public func activeLineIndex(in lines: [LyricLine], position: TimeInterval, offset: TimeInterval = 0) -> Int {
-        let adjustedPos = position + offset + 0.15
+    /// The `lines` are expected to already have the LRC `[offset:]` folded into their `start` timestamps by `parse`,
+    /// so no additional offset is applied here.
+    public func activeLineIndex(in lines: [LyricLine], position: TimeInterval) -> Int {
+        let adjustedPos = position + 0.15
         if adjustedPos < 0 || lines.isEmpty { return -1 }
         
         // Before the first line begins

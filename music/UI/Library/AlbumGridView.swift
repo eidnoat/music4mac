@@ -4,17 +4,14 @@ import UIKit
 #endif
 
 public struct AlbumGridView: View {
-    public let albums: [Album]
     @ObservedObject var nav = NavigationCoordinator.shared
     @ObservedObject var storage = StorageManager.shared
-    
+
     private let columns = [
         GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 20)
     ]
-    
-    public init(albums: [Album]) {
-        self.albums = albums
-    }
+
+    public init() {}
     
     private var displayedAlbums: [Album] {
         let query = nav.searchText.trimmingCharacters(in: .whitespaces).lowercased()

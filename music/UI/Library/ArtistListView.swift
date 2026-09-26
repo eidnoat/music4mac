@@ -1,13 +1,10 @@
 import SwiftUI
 
 public struct ArtistListView: View {
-    public let artists: [Artist]
     @ObservedObject var nav = NavigationCoordinator.shared
     @ObservedObject var storage = StorageManager.shared
-    
-    public init(artists: [Artist]) {
-        self.artists = artists
-    }
+
+    public init() {}
     
     private var displayedArtists: [Artist] {
         let query = nav.searchText.trimmingCharacters(in: .whitespaces).lowercased()

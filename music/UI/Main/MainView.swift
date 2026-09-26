@@ -62,10 +62,10 @@ public struct MainView: View {
                         SongListView(title: "Tracks", songs: storage.songs)
                             .id("all_songs")
                     case .albums:
-                        AlbumGridView(albums: storage.albums)
+                        AlbumGridView()
                             .id("albums")
                     case .artists:
-                        ArtistListView(artists: storage.artists)
+                        ArtistListView()
                             .id("artists")
                     case .settings:
                         SettingsView()

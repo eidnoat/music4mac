@@ -52,7 +52,9 @@ public enum SongSortOption: String, CaseIterable, Identifiable, Codable {
             }
             
             if result == .orderedSame {
-                return a.title.localizedStandardCompare(b.title) == .orderedAscending
+                let tie = a.title.localizedStandardCompare(b.title)
+                if tie == .orderedSame { return false }
+                return ascending ? (tie == .orderedAscending) : (tie == .orderedDescending)
             }
             return ascending ? (result == .orderedAscending) : (result == .orderedDescending)
         }
@@ -95,17 +97,19 @@ public enum AlbumSortOption: String, CaseIterable, Identifiable, Codable {
                     result = .orderedSame
                 }
             case .songCount:
-                if a.songs.count < b.songs.count {
+                if a.songCount < b.songCount {
                     result = .orderedAscending
-                } else if a.songs.count > b.songs.count {
+                } else if a.songCount > b.songCount {
                     result = .orderedDescending
                 } else {
                     result = .orderedSame
                 }
             }
-            
+
             if result == .orderedSame {
-                return a.title.localizedStandardCompare(b.title) == .orderedAscending
+                let tie = a.title.localizedStandardCompare(b.title)
+                if tie == .orderedSame { return false }
+                return ascending ? (tie == .orderedAscending) : (tie == .orderedDescending)
             }
             return ascending ? (result == .orderedAscending) : (result == .orderedDescending)
         }

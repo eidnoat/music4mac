@@ -108,9 +108,9 @@ public struct iPadMainView: View {
         case .tracks, .none:
             SongListView(title: "Tracks", songs: storage.songs)
         case .albums:
-            AlbumGridView(albums: storage.albums)
+            AlbumGridView()
         case .artists:
-            ArtistListView(artists: storage.artists)
+            ArtistListView()
         case .settings:
             SettingsView()
         }

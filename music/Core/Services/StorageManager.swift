@@ -123,6 +123,7 @@ public final class StorageManager: ObservableObject {
     }
     
     public func upsertSongs(_ newSongs: [Song]) {
+        assert(Thread.isMainThread, "StorageManager must be mutated on the main thread")
         var dict: [String: Song] = Dictionary(minimumCapacity: songs.count + newSongs.count)
         for song in songs {
             dict[song.id] = song
@@ -151,6 +152,7 @@ public final class StorageManager: ObservableObject {
     }
     
     public func removeSongs(where predicate: (Song) -> Bool) {
+        assert(Thread.isMainThread, "StorageManager must be mutated on the main thread")
         songs.removeAll(where: predicate)
         self.dataVersion = UUID()
         updateDerivedCollections()
@@ -176,19 +178,17 @@ public final class StorageManager: ObservableObject {
     }
     
     public func recordPlayStart(song: Song) {
+        assert(Thread.isMainThread, "StorageManager must be mutated on the main thread")
         history.removeAll(where: { $0 == song.id })
         history.insert(song.id, at: 0)
         if history.count > 500 {
             history.removeLast()
         }
-        
+
+        // Only bump lastPlayed for tracks that are already in the library;
+        // playing an unknown track must not inject it into the user's library.
         if let idx = songs.firstIndex(where: { $0.id == song.id }) {
             songs[idx].lastPlayed = Date()
-        } else {
-            var s = song
-            s.lastPlayed = Date()
-            songs.append(s)
-            updateDerivedCollections()
         }
         
         let historySnapshot = self.history
@@ -202,6 +202,7 @@ public final class StorageManager: ObservableObject {
     }
     
     public func incrementPlayCount(songId: String) {
+        assert(Thread.isMainThread, "StorageManager must be mutated on the main thread")
         if let idx = songs.firstIndex(where: { $0.id == songId }) {
             songs[idx].playCount += 1
             saveLibrary()
