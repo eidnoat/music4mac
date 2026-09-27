@@ -108,6 +108,14 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         timeControlObservation = nil
         self.errorMessage = nil
         
+        // Before unloading outgoing song, commit play count if it met completion threshold
+        if !self.scrobbledCurrentSong,
+           let previousSong = self.currentSong,
+           self.duration > 0,
+           (self.currentTime > (self.duration / 2.0) || self.currentTime > 240) {
+            triggerScrobbleAndPlayCount(for: previousSong)
+        }
+        
         self.isSeeking = false
         self.currentSong = song
         self.currentTime = 0
@@ -349,6 +357,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     
     public func skipToPrevious() {
         if currentTime > 3.0 {
+            self.scrobbledCurrentSong = false
             seek(to: 0)
         } else if let prev = playQueue.previousSong() {
             loadAndPlay(song: prev, forceRestart: true)
@@ -465,32 +474,28 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
             // Scrobble & play count trigger (> 50% duration or > 4 minutes)
             if !self.scrobbledCurrentSong && self.duration > 0 {
                 if seconds > (self.duration / 2.0) || seconds > 240 {
-                    self.scrobbledCurrentSong = true
-                    if let song = self.currentSong {
-                        StorageManager.shared.incrementPlayCount(songId: song.id)
-                        if let remoteId = song.remoteId {
-                            Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: true) }
-                        }
-                    }
+                    self.triggerScrobbleAndPlayCount()
                 }
             }
+        }
+    }
+    
+    private func triggerScrobbleAndPlayCount(for song: Song? = nil) {
+        guard !self.scrobbledCurrentSong, let targetSong = song ?? self.currentSong else { return }
+        self.scrobbledCurrentSong = true
+        StorageManager.shared.incrementPlayCount(songId: targetSong.id)
+        if let remoteId = targetSong.remoteId {
+            Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: true) }
         }
     }
     
     @objc private func playerItemDidReachEnd() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            if !self.scrobbledCurrentSong {
-                self.scrobbledCurrentSong = true
-                if let song = self.currentSong {
-                    StorageManager.shared.incrementPlayCount(songId: song.id)
-                    if let remoteId = song.remoteId {
-                        Task { await NavidromeClient.shared.scrobble(songId: remoteId, submission: true) }
-                    }
-                }
-            }
+            self.triggerScrobbleAndPlayCount()
             
             if self.playQueue.playMode == .repeatOne {
+                self.scrobbledCurrentSong = false // Reset so next loop will count as a fresh play!
                 self.seek(to: 0)
                 self.play()
             } else {

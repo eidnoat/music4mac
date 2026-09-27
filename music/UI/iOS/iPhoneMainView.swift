@@ -140,7 +140,19 @@ public struct iPhoneMainView: View {
     private var sortMenu: some View {
         Menu {
             if librarySegment == 0 {
-                Picker("Sort By", selection: $songSortOption) {
+                Picker("Sort By", selection: Binding(
+                    get: { songSortOption },
+                    set: { newOption in
+                        if newOption != songSortOption {
+                            if newOption == .playCount {
+                                songSortAscending = false
+                            } else if songSortOption == .playCount {
+                                songSortAscending = true
+                            }
+                            songSortOption = newOption
+                        }
+                    }
+                )) {
                     ForEach(SongSortOption.allCases) { option in
                         Text(option.title).tag(option)
                     }
@@ -257,10 +269,18 @@ public struct iPhoneMainView: View {
                                 }
                             }
                             
-                            Text("\(song.artist) · \(song.album)")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
+                            HStack(spacing: 6) {
+                                Text("\(song.artist) · \(song.album)")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                
+                                if song.playCount > 0 {
+                                    Text("· \(song.playCount) plays")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary.opacity(0.8))
+                                }
+                            }
                         }
                         
                         Spacer()

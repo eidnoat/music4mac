@@ -153,11 +153,20 @@ public final class StorageManager: ObservableObject, @unchecked Sendable {
         return ids.compactMap { byId[$0] }
     }
     
-    public func saveLibrary() {
+    public func saveLibrary(immediate: Bool = false) {
         let songsSnapshot = self.songs
         let url = baseDir.appendingPathComponent(libraryFileName)
         
         pendingSaveWorkItem?.cancel()
+        if immediate {
+            pendingSaveWorkItem = nil
+            ioQueue.async {
+                if let data = try? JSONEncoder().encode(songsSnapshot) {
+                    try? data.write(to: url, options: .atomic)
+                }
+            }
+            return
+        }
         let workItem = DispatchWorkItem {
             if let data = try? JSONEncoder().encode(songsSnapshot) {
                 try? data.write(to: url, options: .atomic)
@@ -260,9 +269,22 @@ public final class StorageManager: ObservableObject, @unchecked Sendable {
     
     public func incrementPlayCount(songId: String) {
         assert(Thread.isMainThread, "StorageManager must be mutated on the main thread")
-        if let idx = songs.firstIndex(where: { $0.id == songId }) {
+        if let idx = songs.firstIndex(where: { $0.id == songId || ($0.remoteId != nil && $0.remoteId == songId) }) {
             songs[idx].playCount += 1
-            saveLibrary()
+            songs[idx].lastPlayed = Date()
+            let updated = songs[idx]
+            self.dataVersion = UUID()
+            
+            if AudioPlayerEngine.shared.currentSong?.id == updated.id {
+                AudioPlayerEngine.shared.currentSong?.playCount = updated.playCount
+                AudioPlayerEngine.shared.currentSong?.lastPlayed = updated.lastPlayed
+            }
+            if let qIdx = PlayQueueManager.shared.queue.firstIndex(where: { $0.id == updated.id }) {
+                PlayQueueManager.shared.queue[qIdx].playCount = updated.playCount
+                PlayQueueManager.shared.queue[qIdx].lastPlayed = updated.lastPlayed
+            }
+            
+            saveLibrary(immediate: true)
         }
     }
     

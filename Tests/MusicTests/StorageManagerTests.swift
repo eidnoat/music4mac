@@ -132,4 +132,32 @@ final class StorageManagerTests: XCTestCase {
         storage.songs = originalSongs
         storage.updateDerivedCollections()
     }
+    
+    func testIncrementPlayCountUpdatesDataVersionAndSyncsPlayer() {
+        let storage = StorageManager.shared
+        let originalSongs = storage.songs
+        let initialVersion = storage.dataVersion
+        
+        let testSong = Song(id: "s_inc_test", title: "Inc Test", artist: "Artist", album: "Album", playCount: 3)
+        storage.songs = [testSong]
+        
+        AudioPlayerEngine.shared.currentSong = testSong
+        PlayQueueManager.shared.setQueue([testSong], startAt: 0)
+        
+        storage.incrementPlayCount(songId: "s_inc_test")
+        
+        XCTAssertNotEqual(storage.dataVersion, initialVersion)
+        let updated = storage.songs.first(where: { $0.id == "s_inc_test" })
+        XCTAssertEqual(updated?.playCount, 4)
+        XCTAssertNotNil(updated?.lastPlayed)
+        
+        XCTAssertEqual(AudioPlayerEngine.shared.currentSong?.playCount, 4)
+        XCTAssertEqual(PlayQueueManager.shared.queue.first?.playCount, 4)
+        
+        // Restore
+        AudioPlayerEngine.shared.currentSong = nil
+        PlayQueueManager.shared.clear()
+        storage.songs = originalSongs
+        storage.updateDerivedCollections()
+    }
 }

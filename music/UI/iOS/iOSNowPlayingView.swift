@@ -273,10 +273,18 @@ public struct iOSNowPlayingView: View {
                     .foregroundColor(.primary)
                     .lineLimit(1)
                 
-                Text(player.currentSong?.artist ?? "Select a track to start")
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(player.currentSong?.artist ?? "Select a track to start")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    
+                    if let count = player.currentSong?.playCount, count > 0 {
+                        Text("· \(count) plays")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary.opacity(0.8))
+                    }
+                }
             }
             
             Spacer()

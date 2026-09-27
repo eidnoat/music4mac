@@ -365,10 +365,18 @@ public struct SongListView: View {
                                 }
                             }
                             
-                            Text("\(song.artist) · \(song.album)")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
+                            HStack(spacing: 6) {
+                                Text("\(song.artist) · \(song.album)")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                
+                                if song.playCount > 0 {
+                                    Text("· \(song.playCount) plays")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary.opacity(0.8))
+                                }
+                            }
                         }
                         
                         Spacer()

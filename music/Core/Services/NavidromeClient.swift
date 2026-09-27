@@ -1,6 +1,9 @@
 import Foundation
 import CryptoKit
 import Security
+#if os(iOS)
+import UIKit
+#endif
 
 private enum KeychainStore {
     private static let service = "com.afalphy.music.navidrome"
@@ -303,6 +306,29 @@ public final class NavidromeClient: ObservableObject {
     }
     
     public func scrobble(songId: String, submission: Bool = true) async {
+        #if os(iOS)
+        var bgTask: UIBackgroundTaskIdentifier = .invalid
+        if Thread.isMainThread {
+            bgTask = UIApplication.shared.beginBackgroundTask(withName: "scrobble-\(songId)") {
+                UIApplication.shared.endBackgroundTask(bgTask)
+                bgTask = .invalid
+            }
+        } else {
+            await MainActor.run {
+                bgTask = UIApplication.shared.beginBackgroundTask(withName: "scrobble-\(songId)") {
+                    UIApplication.shared.endBackgroundTask(bgTask)
+                    bgTask = .invalid
+                }
+            }
+        }
+        defer {
+            if bgTask != .invalid {
+                Task { @MainActor in
+                    UIApplication.shared.endBackgroundTask(bgTask)
+                }
+            }
+        }
+        #endif
         let timestampMs = String(Int64(Date().timeIntervalSince1970 * 1000))
         _ = try? await request(endpoint: "/rest/scrobble.view", extraParams: [
             "id": songId,
