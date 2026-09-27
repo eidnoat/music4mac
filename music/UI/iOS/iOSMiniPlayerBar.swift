@@ -41,35 +41,32 @@ public struct iOSMiniPlayerBar: View {
                                 .foregroundColor(.appleMusicRed)
                                 .frame(width: 36, height: 36)
                         }
-                        .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
+                        .buttonStyle(PlayerControlButtonStyle(scale: 0.94))
                         
                         Button {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
-                                player.togglePlayPause()
-                            }
+                            HapticHelper.light()
+                            player.togglePlayPause()
                         } label: {
                             ZStack {
                                 if player.status == .loading {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle())
                                         .scaleEffect(0.9)
-                                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                                        .transition(.opacity)
                                 } else {
                                     Image(systemName: player.status == .playing ? "pause.fill" : "play.fill")
                                         .font(.system(size: 19))
                                         .foregroundColor(.appleMusicRed)
                                         .contentTransition(.symbolEffect(.replace))
-                                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
                                 }
                             }
                             .frame(width: 36, height: 36)
                         }
-                        .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
-                        .animation(.spring(response: 0.32, dampingFraction: 0.72), value: player.status == .playing)
+                        .buttonStyle(PlayerControlButtonStyle(scale: 0.94))
+                        .animation(.easeInOut(duration: 0.2), value: player.status == .playing)
                         
                         Button {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            HapticHelper.light()
                             player.skipToNext()
                         } label: {
                             Image(systemName: "forward.fill")
@@ -77,7 +74,7 @@ public struct iOSMiniPlayerBar: View {
                                 .foregroundColor(.appleMusicRed)
                                 .frame(width: 36, height: 36)
                         }
-                        .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
+                        .buttonStyle(PlayerControlButtonStyle(scale: 0.94))
                     }
                 }
                 .padding(.horizontal, 12)

@@ -299,6 +299,9 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
             }
             return
         }
+        #if os(iOS)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
         player.play()
         self.status = .playing
         NowPlayingManager.shared.updateNowPlaying(

@@ -55,4 +55,18 @@ extension View {
         KeyboardHelper.dismiss()
     }
 }
+
+@MainActor
+public enum HapticHelper {
+    private static let lightGen = UIImpactFeedbackGenerator(style: .light)
+    private static let mediumGen = UIImpactFeedbackGenerator(style: .medium)
+    
+    public static func light() {
+        lightGen.impactOccurred()
+    }
+    
+    public static func medium() {
+        mediumGen.impactOccurred()
+    }
+}
 #endif

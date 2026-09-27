@@ -336,7 +336,7 @@ public struct iOSNowPlayingView: View {
             
             // Previous
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                HapticHelper.light()
                 player.skipToPrevious()
             } label: {
                 Image(systemName: "backward.fill")
@@ -344,38 +344,35 @@ public struct iOSNowPlayingView: View {
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
+            .buttonStyle(PlayerControlButtonStyle(scale: 0.92))
             
             // Play / Pause
             Button {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                    player.togglePlayPause()
-                }
+                HapticHelper.medium()
+                player.togglePlayPause()
             } label: {
                 ZStack {
                     if player.status == .loading {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                             .scaleEffect(1.6)
-                            .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                            .transition(.opacity)
                     } else {
                         Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
                             .font(.system(size: 64))
                             .foregroundColor(.appleMusicRed)
                             .contentTransition(.symbolEffect(.replace))
-                            .transition(.opacity.combined(with: .scale(scale: 0.85)))
                     }
                 }
                 .frame(width: 64, height: 64)
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(PlayerControlButtonStyle(scale: 0.90))
-            .animation(.spring(response: 0.35, dampingFraction: 0.72), value: player.status == .playing)
+            .buttonStyle(PlayerControlButtonStyle(scale: 0.94))
+            .animation(.easeInOut(duration: 0.2), value: player.status == .playing)
             
             // Next
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                HapticHelper.light()
                 player.skipToNext()
             } label: {
                 Image(systemName: "forward.fill")
@@ -383,7 +380,7 @@ public struct iOSNowPlayingView: View {
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
+            .buttonStyle(PlayerControlButtonStyle(scale: 0.92))
             
             // Repeat
             Button {

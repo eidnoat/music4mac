@@ -3,7 +3,7 @@ import SwiftUI
 public struct PlayerControlButtonStyle: ButtonStyle {
     public let scale: CGFloat
     
-    public init(scale: CGFloat = 0.90) {
+    public init(scale: CGFloat = 0.94) {
         self.scale = scale
     }
     
@@ -11,6 +11,6 @@ public struct PlayerControlButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1.0)
             .opacity(configuration.isPressed ? 0.82 : 1.0)
-            .animation(.spring(response: 0.22, dampingFraction: 0.65), value: configuration.isPressed)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }

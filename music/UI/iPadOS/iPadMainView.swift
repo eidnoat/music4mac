@@ -183,38 +183,35 @@ public struct iPadPlayerBar: View {
                             .font(.system(size: 16))
                             .foregroundColor(.primary)
                     }
-                    .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
+                    .buttonStyle(PlayerControlButtonStyle(scale: 0.92))
                     
                     Button {
                         #if os(iOS)
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        HapticHelper.medium()
                         #endif
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
-                            player.togglePlayPause()
-                        }
+                        player.togglePlayPause()
                     } label: {
                         ZStack {
                             if player.status == .loading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle())
                                     .scaleEffect(1.0)
-                                    .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                                    .transition(.opacity)
                             } else {
                                 Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
                                     .font(.system(size: 34))
                                     .foregroundColor(.appleMusicRed)
                                     .contentTransition(.symbolEffect(.replace))
-                                    .transition(.opacity.combined(with: .scale(scale: 0.85)))
                             }
                         }
                         .frame(width: 34, height: 34)
                     }
-                    .buttonStyle(PlayerControlButtonStyle(scale: 0.90))
-                    .animation(.spring(response: 0.32, dampingFraction: 0.72), value: player.status == .playing)
+                    .buttonStyle(PlayerControlButtonStyle(scale: 0.94))
+                    .animation(.easeInOut(duration: 0.2), value: player.status == .playing)
                     
                     Button {
                         #if os(iOS)
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        HapticHelper.light()
                         #endif
                         player.skipToNext()
                     } label: {
@@ -222,7 +219,7 @@ public struct iPadPlayerBar: View {
                             .font(.system(size: 16))
                             .foregroundColor(.primary)
                     }
-                    .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
+                    .buttonStyle(PlayerControlButtonStyle(scale: 0.92))
                     
                     Button {
                         queue.cycleRepeatMode()
