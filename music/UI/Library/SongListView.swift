@@ -337,6 +337,7 @@ public struct SongListView: View {
                 let isPlaying = isCurrent && isAudioPlaying
                 
                 Button {
+                    KeyboardHelper.dismiss()
                     player.playSong(song, in: displayedSongs)
                 } label: {
                     HStack(spacing: 14) {
@@ -452,6 +453,7 @@ public struct SongListView: View {
             }
         }
         .listStyle(.plain)
+        .scrollDismissesKeyboard(.immediately)
     }
     #endif
     

@@ -47,6 +47,9 @@ public struct iPhoneMainView: View {
                     searchContent
                         .navigationTitle("Search")
                         .searchable(text: $searchText, prompt: "Songs, Artists, Albums")
+                        .onSubmit(of: .search) {
+                            KeyboardHelper.dismiss()
+                        }
                 }
                 .tabItem {
                     Label("Search", systemImage: "magnifyingglass")
@@ -63,9 +66,13 @@ public struct iPhoneMainView: View {
                 }
                 .tag(2)
             }
+            .onChange(of: selectedTab) { _, _ in
+                KeyboardHelper.dismiss()
+            }
             
             // Floating Mini Player docked above the tab bar
             iOSMiniPlayerBar {
+                KeyboardHelper.dismiss()
                 nowPlayingPresentationID += 1
                 withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
                     isShowingNowPlaying = true
@@ -163,13 +170,35 @@ public struct iPhoneMainView: View {
                     .foregroundColor(.secondary)
                 Spacer()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                KeyboardHelper.dismiss()
+            }
         } else {
             let matchedSongs = storage.songs.filter {
                 $0.title.localizedCaseInsensitiveContains(query) ||
                 $0.artist.localizedCaseInsensitiveContains(query) ||
                 $0.album.localizedCaseInsensitiveContains(query)
             }
-            tracksList(songs: matchedSongs)
+            if matchedSongs.isEmpty {
+                VStack(spacing: 12) {
+                    Spacer()
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 40))
+                        .foregroundColor(.secondary)
+                    Text("No results for \"\(searchText)\"")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    KeyboardHelper.dismiss()
+                }
+            } else {
+                tracksList(songs: matchedSongs)
+            }
         }
     }
     
@@ -182,6 +211,7 @@ public struct iPhoneMainView: View {
                 let isPlaying = isCurrent && player.status == .playing
                 
                 Button {
+                    KeyboardHelper.dismiss()
                     player.playSong(song, in: songs)
                 } label: {
                     HStack(spacing: 12) {
@@ -269,6 +299,7 @@ public struct iPhoneMainView: View {
             }
         }
         .listStyle(.plain)
+        .scrollDismissesKeyboard(.immediately)
         .safeAreaInset(edge: .bottom) {
             Color.clear.frame(height: 70) // Prevent list content from being covered by mini player
         }

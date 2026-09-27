@@ -29,3 +29,30 @@ extension Image {
         #endif
     }
 }
+
+#if os(iOS)
+public enum KeyboardHelper {
+    public static func dismiss() {
+        if Thread.isMainThread {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            for scene in UIApplication.shared.connectedScenes {
+                if let windowScene = scene as? UIWindowScene {
+                    for window in windowScene.windows {
+                        window.endEditing(true)
+                    }
+                }
+            }
+        } else {
+            DispatchQueue.main.async {
+                dismiss()
+            }
+        }
+    }
+}
+
+extension View {
+    public func dismissKeyboard() {
+        KeyboardHelper.dismiss()
+    }
+}
+#endif

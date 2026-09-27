@@ -1,6 +1,9 @@
 import Foundation
 import AVFoundation
 import Combine
+#if os(iOS)
+import UIKit
+#endif
 
 public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     public static let shared = AudioPlayerEngine()
@@ -36,6 +39,10 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     private var isSeeking = false
     private var itemStatusObservation: NSKeyValueObservation?
     private var timeControlObservation: NSKeyValueObservation?
+    private var playerTimeControlObservation: NSKeyValueObservation?
+    #if os(iOS)
+    private var wasPlayingBeforeInterruption = false
+    #endif
     private var loadingTimeoutTask: Task<Void, Never>?
     private let playbackLoadingTimeout: TimeInterval = 12.0
     @Published public var errorMessage: String? = nil
@@ -43,6 +50,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     private init() {
         #if os(iOS)
         configureAudioSession()
+        setupAudioSessionNotifications()
         #endif
         
         let savedVol = UserDefaults.standard.object(forKey: "music.player.volume") != nil
@@ -52,6 +60,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         self.player.volume = self.volume
         
         setupTimeObserver()
+        setupPlayerObservers()
         
         // Listen to queue song changes
         playQueue.$currentIndex
@@ -294,6 +303,9 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     }
     
     public func pause() {
+        #if os(iOS)
+        self.wasPlayingBeforeInterruption = false
+        #endif
         player.pause()
         self.status = .paused
         NowPlayingManager.shared.updateNowPlaying(
@@ -488,6 +500,9 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
     }
     
     public func stop() {
+        #if os(iOS)
+        self.wasPlayingBeforeInterruption = false
+        #endif
         cancelLoadingTimeout()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
@@ -504,11 +519,34 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         NowPlayingManager.shared.updateNowPlaying(song: nil, playbackRate: 0, currentTime: 0)
     }
     
+    private func setupPlayerObservers() {
+        playerTimeControlObservation = player.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                if self.status == .playing && !self.isSeeking && player.timeControlStatus == .paused {
+                    self.status = .paused
+                    NowPlayingManager.shared.updateNowPlaying(
+                        song: self.currentSong,
+                        playbackRate: 0.0,
+                        currentTime: self.currentTime
+                    )
+                }
+            }
+        }
+    }
+    
     private func teardownPlayer() {
         if let token = timeObserverToken {
             player.removeTimeObserver(token)
             timeObserverToken = nil
         }
+        playerTimeControlObservation?.invalidate()
+        playerTimeControlObservation = nil
+        #if os(iOS)
+        NotificationCenter.default.removeObserver(self, name: AVAudioSession.interruptionNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: AVAudioSession.routeChangeNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willEnterForegroundNotification, object: nil)
+        #endif
         stop()
     }
     
@@ -520,6 +558,105 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
             try session.setActive(true)
         } catch {
             print("[AudioPlayerEngine] Failed to configure AVAudioSession: \(error)")
+        }
+    }
+    
+    private func setupAudioSessionNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioSessionInterruption),
+            name: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance()
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioRouteChange),
+            name: AVAudioSession.routeChangeNotification,
+            object: AVAudioSession.sharedInstance()
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAppWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
+    }
+    
+    @objc private func handleAudioSessionInterruption(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            switch type {
+            case .began:
+                let isCurrentlyPlaying = (self.status == .playing)
+                self.wasPlayingBeforeInterruption = isCurrentlyPlaying
+                if isCurrentlyPlaying {
+                    self.status = .paused
+                    NowPlayingManager.shared.updateNowPlaying(
+                        song: self.currentSong,
+                        playbackRate: 0.0,
+                        currentTime: self.currentTime
+                    )
+                }
+            case .ended:
+                guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else {
+                    self.wasPlayingBeforeInterruption = false
+                    return
+                }
+                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+                if options.contains(.shouldResume) && self.wasPlayingBeforeInterruption {
+                    self.wasPlayingBeforeInterruption = false
+                    do {
+                        try AVAudioSession.sharedInstance().setActive(true)
+                        self.play()
+                    } catch {
+                        print("[AudioPlayerEngine] Failed to reactivate audio session: \(error)")
+                    }
+                } else {
+                    self.wasPlayingBeforeInterruption = false
+                }
+            @unknown default:
+                break
+            }
+        }
+    }
+    
+    @objc private func handleAudioRouteChange(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
+            return
+        }
+        
+        if reason == .oldDeviceUnavailable {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                if self.status == .playing {
+                    self.pause()
+                }
+            }
+        }
+    }
+    
+    @objc private func handleAppWillEnterForeground() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if self.status == .playing {
+                let isActuallyPlaying = (self.player.timeControlStatus == .playing)
+                if !isActuallyPlaying && !self.isSeeking {
+                    self.status = .paused
+                    NowPlayingManager.shared.updateNowPlaying(
+                        song: self.currentSong,
+                        playbackRate: 0.0,
+                        currentTime: self.currentTime
+                    )
+                }
+            }
         }
     }
     #endif

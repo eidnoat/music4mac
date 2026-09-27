@@ -75,6 +75,7 @@ public struct iOSNowPlayingView: View {
                     }
             )
             .onAppear {
+                KeyboardHelper.dismiss()
                 dragOffset = 0
                 isDismissing = false
             }

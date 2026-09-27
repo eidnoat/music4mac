@@ -63,6 +63,7 @@ public struct iPadMainView: View {
                     // Wide iPad Player Bar
                     iPadPlayerBar(
                         onTapNowPlaying: {
+                            KeyboardHelper.dismiss()
                             nowPlayingPresentationID += 1
                             withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
                                 isShowingNowPlayingModal = true
@@ -79,6 +80,10 @@ public struct iPadMainView: View {
                 .navigationTitle(selectedItem?.rawValue ?? "Tracks")
                 .navigationBarTitleDisplayMode(.inline)
                 .searchable(text: $nav.searchText, prompt: "Search music")
+                .onSubmit(of: .search) {
+                    KeyboardHelper.dismiss()
+                }
+                .scrollDismissesKeyboard(.immediately)
                 .onChange(of: selectedItem) { _, _ in
                     nav.selectedAlbum = nil
                     nav.selectedArtist = nil
