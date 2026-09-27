@@ -1,5 +1,6 @@
 #if os(iOS)
 import SwiftUI
+import UIKit
 
 public struct iPhoneMainView: View {
     @ObservedObject var storage = StorageManager.shared
@@ -11,6 +12,7 @@ public struct iPhoneMainView: View {
     @State private var searchText = ""
     @State private var isShowingNowPlaying = false
     @State private var nowPlayingPresentationID = 0
+    @State private var isKeyboardVisible = false
     
     @AppStorage("music.ios.songSortOption") private var songSortOption: SongSortOption = .title
     @AppStorage("music.ios.songSortAscending") private var songSortAscending: Bool = true
@@ -68,9 +70,10 @@ public struct iPhoneMainView: View {
             }
             .onChange(of: selectedTab) { _, _ in
                 KeyboardHelper.dismiss()
+                isKeyboardVisible = false
             }
             
-            // Floating Mini Player docked above the tab bar
+            // Floating Mini Player docked above the tab bar or keyboard
             iOSMiniPlayerBar {
                 KeyboardHelper.dismiss()
                 nowPlayingPresentationID += 1
@@ -78,7 +81,7 @@ public struct iPhoneMainView: View {
                     isShowingNowPlaying = true
                 }
             }
-            .padding(.bottom, 54) // Align right above standard TabBar
+            .padding(.bottom, isKeyboardVisible ? 8 : 54) // Compact spacing above keyboard, or align above TabBar
             
             // Full-screen Now Playing Overlay preserving underlying view visibility during swipe down
             if isShowingNowPlaying {
@@ -92,6 +95,21 @@ public struct iPhoneMainView: View {
                 .transition(.move(edge: .bottom))
                 .zIndex(100)
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            withAnimation(.easeOut(duration: duration)) {
+                isKeyboardVisible = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { notification in
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            withAnimation(.easeOut(duration: duration)) {
+                isKeyboardVisible = false
+            }
+        }
+        .onDisappear {
+            isKeyboardVisible = false
         }
     }
     
