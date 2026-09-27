@@ -336,6 +336,7 @@ public struct iOSNowPlayingView: View {
             
             // Previous
             Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 player.skipToPrevious()
             } label: {
                 Image(systemName: "backward.fill")
@@ -343,29 +344,38 @@ public struct iOSNowPlayingView: View {
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
             
             // Play / Pause
             Button {
-                player.togglePlayPause()
-            } label: {
-                if player.status == .loading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .scaleEffect(1.6)
-                        .frame(width: 64, height: 64)
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundColor(.appleMusicRed)
-                        .frame(maxWidth: .infinity)
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                    player.togglePlayPause()
                 }
+            } label: {
+                ZStack {
+                    if player.status == .loading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .scaleEffect(1.6)
+                            .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                    } else {
+                        Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 64))
+                            .foregroundColor(.appleMusicRed)
+                            .contentTransition(.symbolEffect(.replace))
+                            .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                    }
+                }
+                .frame(width: 64, height: 64)
+                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PlayerControlButtonStyle(scale: 0.90))
+            .animation(.spring(response: 0.35, dampingFraction: 0.72), value: player.status == .playing)
             
             // Next
             Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 player.skipToNext()
             } label: {
                 Image(systemName: "forward.fill")
@@ -373,7 +383,7 @@ public struct iOSNowPlayingView: View {
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
             
             // Repeat
             Button {

@@ -174,38 +174,55 @@ public struct iPadPlayerBar: View {
                     .buttonStyle(.plain)
                     
                     Button {
+                        #if os(iOS)
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        #endif
                         player.skipToPrevious()
                     } label: {
                         Image(systemName: "backward.fill")
                             .font(.system(size: 16))
                             .foregroundColor(.primary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
                     
                     Button {
-                        player.togglePlayPause()
-                    } label: {
-                        if player.status == .loading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle())
-                                .scaleEffect(1.0)
-                                .frame(width: 34, height: 34)
-                        } else {
-                            Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 34))
-                                .foregroundColor(.appleMusicRed)
+                        #if os(iOS)
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        #endif
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
+                            player.togglePlayPause()
                         }
+                    } label: {
+                        ZStack {
+                            if player.status == .loading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(1.0)
+                                    .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                            } else {
+                                Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
+                                    .font(.system(size: 34))
+                                    .foregroundColor(.appleMusicRed)
+                                    .contentTransition(.symbolEffect(.replace))
+                                    .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                            }
+                        }
+                        .frame(width: 34, height: 34)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PlayerControlButtonStyle(scale: 0.90))
+                    .animation(.spring(response: 0.32, dampingFraction: 0.72), value: player.status == .playing)
                     
                     Button {
+                        #if os(iOS)
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        #endif
                         player.skipToNext()
                     } label: {
                         Image(systemName: "forward.fill")
                             .font(.system(size: 16))
                             .foregroundColor(.primary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
                     
                     Button {
                         queue.cycleRepeatMode()

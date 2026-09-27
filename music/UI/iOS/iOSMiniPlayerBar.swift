@@ -1,5 +1,6 @@
 #if os(iOS)
 import SwiftUI
+import UIKit
 
 public struct iOSMiniPlayerBar: View {
     @ObservedObject var player = AudioPlayerEngine.shared
@@ -32,6 +33,7 @@ public struct iOSMiniPlayerBar: View {
                     
                     HStack(spacing: 4) {
                         Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             player.skipToPrevious()
                         } label: {
                             Image(systemName: "backward.fill")
@@ -39,26 +41,35 @@ public struct iOSMiniPlayerBar: View {
                                 .foregroundColor(.appleMusicRed)
                                 .frame(width: 36, height: 36)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
                         
                         Button {
-                            player.togglePlayPause()
-                        } label: {
-                            if player.status == .loading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                                    .scaleEffect(0.9)
-                                    .frame(width: 36, height: 36)
-                            } else {
-                                Image(systemName: player.status == .playing ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 19))
-                                    .foregroundColor(.appleMusicRed)
-                                    .frame(width: 36, height: 36)
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
+                                player.togglePlayPause()
                             }
+                        } label: {
+                            ZStack {
+                                if player.status == .loading {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
+                                        .scaleEffect(0.9)
+                                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                                } else {
+                                    Image(systemName: player.status == .playing ? "pause.fill" : "play.fill")
+                                        .font(.system(size: 19))
+                                        .foregroundColor(.appleMusicRed)
+                                        .contentTransition(.symbolEffect(.replace))
+                                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                                }
+                            }
+                            .frame(width: 36, height: 36)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
+                        .animation(.spring(response: 0.32, dampingFraction: 0.72), value: player.status == .playing)
                         
                         Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             player.skipToNext()
                         } label: {
                             Image(systemName: "forward.fill")
@@ -66,7 +77,7 @@ public struct iOSMiniPlayerBar: View {
                                 .foregroundColor(.appleMusicRed)
                                 .frame(width: 36, height: 36)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
                     }
                 }
                 .padding(.horizontal, 12)
