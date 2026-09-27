@@ -189,33 +189,39 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
                 playbackRate: 0.0,
                 currentTime: 0
             )
-            
-            itemStatusObservation = playerItem.observe(\.status, options: [.new, .initial]) { [weak self] item, _ in
-                DispatchQueue.main.async {
-                    guard let self = self, self.currentSong?.id == song.id else { return }
-                    switch item.status {
-                    case .readyToPlay:
-                        self.cancelLoadingTimeout()
-                        if self.status == .loading {
-                            self.player.play()
-                            self.status = .playing
-                            NowPlayingManager.shared.updateNowPlaying(
-                                song: song,
-                                playbackRate: 1.0,
-                                currentTime: 0
-                            )
-                        }
-                    case .failed:
-                        self.cancelLoadingTimeout()
-                        let err = item.error?.localizedDescription ?? "Failed to load audio stream"
-                        self.handleLoadingFailure(message: err, song: song)
-                    case .unknown:
-                        break
-                    @unknown default:
-                        break
+        }
+        
+        itemStatusObservation = playerItem.observe(\.status, options: [.new, .initial]) { [weak self] item, _ in
+            DispatchQueue.main.async {
+                guard let self = self, self.currentSong?.id == song.id else { return }
+                switch item.status {
+                case .readyToPlay:
+                    self.cancelLoadingTimeout()
+                    if self.status == .loading {
+                        self.player.play()
+                        self.status = .playing
+                        NowPlayingManager.shared.updateNowPlaying(
+                            song: song,
+                            playbackRate: 1.0,
+                            currentTime: 0
+                        )
                     }
+                case .failed:
+                    self.cancelLoadingTimeout()
+                    if isLocalOrCached {
+                        SongCacheManager.shared.removeSong(id: song.id)
+                    }
+                    let err = item.error?.localizedDescription ?? "Failed to load audio stream"
+                    self.handleLoadingFailure(message: err, song: song)
+                case .unknown:
+                    break
+                @unknown default:
+                    break
                 }
             }
+        }
+        
+        if !isLocalOrCached {
             
             timeControlObservation = self.player.observe(\.timeControlStatus, options: [.new, .initial]) { [weak self] player, _ in
                 DispatchQueue.main.async {

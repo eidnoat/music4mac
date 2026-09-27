@@ -8,7 +8,7 @@ public final class PlayQueueManager: ObservableObject {
     @Published public var currentIndex: Int = -1
     @Published public var playMode: PlayMode = .sequence {
         didSet {
-            handlePlayModeChange()
+            handlePlayModeChange(from: oldValue)
         }
     }
     
@@ -119,7 +119,7 @@ public final class PlayQueueManager: ObservableObject {
         let currentSongId = currentSong?.id
         queue.move(fromOffsets: source, toOffset: destination)
         if let currentSongId = currentSongId,
-           let newIndex = queue.firstIndex(where: { $0.id == currentSongId }) {
+            let newIndex = queue.firstIndex(where: { $0.id == currentSongId }) {
             currentIndex = newIndex
         }
     }
@@ -128,9 +128,7 @@ public final class PlayQueueManager: ObservableObject {
         guard !queue.isEmpty else { return nil }
         
         switch playMode {
-        case .repeatOne:
-            return currentSong
-        case .repeatAll:
+        case .repeatOne, .repeatAll:
             currentIndex = (currentIndex + 1) % queue.count
             return currentSong
         case .sequence:
@@ -158,9 +156,7 @@ public final class PlayQueueManager: ObservableObject {
         guard !queue.isEmpty else { return nil }
         
         switch playMode {
-        case .repeatOne:
-            return currentSong
-        case .repeatAll, .shuffle:
+        case .repeatOne, .repeatAll, .shuffle:
             currentIndex = (currentIndex - 1 + queue.count) % queue.count
             return currentSong
         case .sequence:
@@ -203,16 +199,19 @@ public final class PlayQueueManager: ObservableObject {
         self.currentIndex = index
     }
     
-    private func handlePlayModeChange() {
+    private func handlePlayModeChange(from oldMode: PlayMode) {
         UserDefaults.standard.set(playMode.rawValue, forKey: modeStorageKey)
         guard let current = currentSong else { return }
+
+        let wasShuffle = (oldMode == .shuffle)
+        let isShuffle = (playMode == .shuffle)
+        guard wasShuffle != isShuffle else { return }
 
         isReorganizingQueue = true
         defer { isReorganizingQueue = false }
 
-        if playMode == .shuffle {
-            // Snapshot the current logical order so it can be restored exactly on exit,
-            // instead of trusting an `originalQueue` that may have gone stale after appends.
+        if isShuffle {
+            // Snapshot current logical order before shuffling
             originalQueue = queue
             var newQueue = queue
             if let idx = newQueue.firstIndex(where: { $0.id == current.id }) {
@@ -223,8 +222,16 @@ public final class PlayQueueManager: ObservableObject {
             self.queue = newQueue
             self.currentIndex = 0
         } else {
-            // Restore the pre-shuffle order with a graceful fallback instead of silently no-oping.
-            let restored = originalQueue.isEmpty ? queue : originalQueue
+            // Exiting shuffle mode: restore pre-shuffle order
+            var restored = originalQueue.isEmpty ? queue : originalQueue
+            // Preserve songs added during shuffle
+            for s in queue where !restored.contains(where: { $0.id == s.id }) {
+                restored.append(s)
+            }
+            // Remove songs deleted during shuffle
+            let currentQueueIds = Set(queue.map { $0.id })
+            restored.removeAll(where: { !currentQueueIds.contains($0.id) })
+
             if let idx = restored.firstIndex(where: { $0.id == current.id }) {
                 self.queue = restored
                 self.currentIndex = idx
@@ -233,6 +240,7 @@ public final class PlayQueueManager: ObservableObject {
                 self.queue.insert(current, at: 0)
                 self.currentIndex = 0
             }
+            originalQueue = []
         }
     }
 }

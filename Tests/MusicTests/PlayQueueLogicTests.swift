@@ -61,4 +61,51 @@ final class PlayQueueLogicTests: XCTestCase {
         XCTAssertEqual(queueManager.currentIndex, 2)
         XCTAssertEqual(queueManager.currentSong?.id, "2")
     }
+    
+    func testCycleRepeatModeDoesNotOverwriteQueue() {
+        let queueManager = PlayQueueManager.shared
+        let song1 = Song(id: "1", title: "Song 1", artist: "Artist 1", album: "Album 1")
+        let song2 = Song(id: "2", title: "Song 2", artist: "Artist 2", album: "Album 2")
+        let song3 = Song(id: "3", title: "Song 3", artist: "Artist 3", album: "Album 3")
+        
+        queueManager.playMode = .sequence
+        queueManager.setQueue([song1, song2], startAt: 0)
+        queueManager.append(song3)
+        XCTAssertEqual(queueManager.queue.count, 3)
+        
+        // Cycle repeat mode: sequence -> repeatAll
+        queueManager.cycleRepeatMode()
+        XCTAssertEqual(queueManager.playMode, .repeatAll)
+        XCTAssertEqual(queueManager.queue.count, 3)
+        XCTAssertEqual(queueManager.queue.map { $0.id }, ["1", "2", "3"])
+        
+        // Cycle repeat mode: repeatAll -> repeatOne
+        queueManager.cycleRepeatMode()
+        XCTAssertEqual(queueManager.playMode, .repeatOne)
+        XCTAssertEqual(queueManager.queue.count, 3)
+        XCTAssertEqual(queueManager.queue.map { $0.id }, ["1", "2", "3"])
+        
+        // Reset to sequence
+        queueManager.playMode = .sequence
+    }
+    
+    func testRepeatOneManualNavigation() {
+        let queueManager = PlayQueueManager.shared
+        let song1 = Song(id: "1", title: "Song 1", artist: "Artist 1", album: "Album 1")
+        let song2 = Song(id: "2", title: "Song 2", artist: "Artist 2", album: "Album 2")
+        
+        queueManager.playMode = .repeatOne
+        queueManager.setQueue([song1, song2], startAt: 0)
+        XCTAssertEqual(queueManager.currentSong?.id, "1")
+        
+        // Manually skipping to next should advance to next song in queue
+        let next = queueManager.nextSong()
+        XCTAssertEqual(next?.id, "2")
+        
+        // Manually skipping to previous should go back
+        let prev = queueManager.previousSong()
+        XCTAssertEqual(prev?.id, "1")
+        
+        queueManager.playMode = .sequence
+    }
 }

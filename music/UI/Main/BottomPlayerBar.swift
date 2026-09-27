@@ -113,7 +113,7 @@ public struct BottomPlayerBar: View {
                 Image(systemName: "backward.fill")
                     .font(.system(size: 14))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
             
             Button {
                 player.togglePlayPause()
@@ -129,9 +129,11 @@ public struct BottomPlayerBar: View {
                 } else {
                     Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
                         .font(.system(size: 32))
+                        .contentTransition(.symbolEffect(.replace))
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PlayerControlButtonStyle(scale: 0.92))
+            .animation(.spring(response: 0.32, dampingFraction: 0.72), value: player.status == .playing)
             .help(player.status == .loading ? "Loading track..." : (player.errorMessage ?? (player.status == .playing ? "Pause" : "Play")))
             
             Button {
@@ -140,7 +142,7 @@ public struct BottomPlayerBar: View {
                 Image(systemName: "forward.fill")
                     .font(.system(size: 14))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PlayerControlButtonStyle(scale: 0.88))
         }
     }
     
