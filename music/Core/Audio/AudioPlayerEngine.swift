@@ -528,6 +528,7 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
         NowPlayingManager.shared.updateNowPlaying(song: nil, playbackRate: 0, currentTime: 0)
     }
     
+    #if os(iOS)
     private func setupPlayerObservers() {
         playerTimeControlObservation = player.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
             DispatchQueue.main.async {
@@ -543,6 +544,9 @@ public final class AudioPlayerEngine: ObservableObject, @unchecked Sendable {
             }
         }
     }
+    #else
+    private func setupPlayerObservers() {}
+    #endif
     
     private func teardownPlayer() {
         if let token = timeObserverToken {

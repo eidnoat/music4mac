@@ -8,9 +8,14 @@ public struct PlayerControlButtonStyle: ButtonStyle {
     }
     
     public func makeBody(configuration: Configuration) -> some View {
+        #if os(macOS)
+        configuration.label
+            .opacity(configuration.isPressed ? 0.72 : 1.0)
+        #elseif os(iOS)
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1.0)
             .opacity(configuration.isPressed ? 0.82 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+        #endif
     }
 }

@@ -118,22 +118,24 @@ public struct BottomPlayerBar: View {
             Button {
                 player.togglePlayPause()
             } label: {
-                if player.status == .loading {
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(width: 32, height: 32)
-                } else if case .error = player.status {
-                    Image(systemName: "arrow.clockwise.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(.orange)
-                } else {
-                    Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 32))
-                        .contentTransition(.symbolEffect(.replace))
+                ZStack {
+                    if player.status == .loading {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else if case .error = player.status {
+                        Image(systemName: "arrow.clockwise.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundColor(.orange)
+                    } else {
+                        Image(systemName: player.status == .playing ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 32))
+                            .contentTransition(.symbolEffect(.replace))
+                            .animation(.easeInOut(duration: 0.2), value: player.status == .playing)
+                    }
                 }
+                .frame(width: 36, height: 36)
             }
-            .buttonStyle(PlayerControlButtonStyle(scale: 0.94))
-            .animation(.easeInOut(duration: 0.2), value: player.status == .playing)
+            .buttonStyle(PlayerControlButtonStyle())
             .help(player.status == .loading ? "Loading track..." : (player.errorMessage ?? (player.status == .playing ? "Pause" : "Play")))
             
             Button {

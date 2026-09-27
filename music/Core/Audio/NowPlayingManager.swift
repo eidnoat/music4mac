@@ -143,10 +143,14 @@ public final class NowPlayingManager: @unchecked Sendable {
             nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
         }
         
-        #if os(iOS)
+        #if os(macOS)
+        DispatchQueue.global(qos: .userInitiated).async {
+            infoCenter.nowPlayingInfo = nowPlayingInfo
+        }
+        #elseif os(iOS)
         infoCenter.playbackState = (playbackRate > 0) ? .playing : .paused
-        #endif
         infoCenter.nowPlayingInfo = nowPlayingInfo
+        #endif
     }
     
     private func setLoadedArtwork(_ image: PlatformImage, for songId: String) {
