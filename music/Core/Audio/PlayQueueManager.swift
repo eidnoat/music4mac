@@ -28,6 +28,10 @@ public final class PlayQueueManager: ObservableObject {
         self.playMode = PlayMode(rawValue: rawMode) ?? .sequence
     }
     
+    public func clear() {
+        setQueue([])
+    }
+    
     public func setQueue(_ songs: [Song], startAt index: Int = 0) {
         self.originalQueue = songs
         if playMode == .shuffle {
